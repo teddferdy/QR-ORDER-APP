@@ -97,46 +97,18 @@ interface CustomerOrderResponse {
   };
 }
 
-const STATUS_MAP: Record<string, OrderStatus> = {
-  pending: "Menunggu Konfirmasi",
-  confirmed: "Diproses",
-  preparing: "Sedang Dimasak",
-  ready: "Siap Diantar",
-  served: "Sudah Diantar",
-  paid: "Sudah Diantar",
-  cancelled: "Menunggu Konfirmasi",
-  void: "Menunggu Konfirmasi",
-};
-
-const PAYMENT_METHOD_MAP: Record<string, PaymentMethod> = {
-  cash: "Tunai",
-  debit: "Kartu Kredit",
-  credit: "Kartu Kredit",
-  "e-wallet": "E-Wallet",
-  qris: "QRIS",
-  other: "QRIS",
-};
-
 function mapStatus(beStatus: string): OrderStatus {
-  return STATUS_MAP[beStatus] || "Menunggu Konfirmasi";
-}
-
-function mapPaymentMethod(method: string | null): PaymentMethod {
-  if (!method) return "QRIS";
-  const lower = method.toLowerCase();
-  if (lower.includes("qris")) return "QRIS";
-  if (lower.includes("cash") || lower.includes("tunai")) return "Tunai";
-  if (lower.includes("credit") || lower.includes("kartu"))
-    return "Kartu Kredit";
-  if (
-    lower.includes("ewallet") ||
-    lower.includes("e-wallet") ||
-    lower.includes("e wallet")
-  )
-    return "E-Wallet";
-  if (lower.includes("postpaid") || lower.includes("bayar")) return "Postpaid";
-  if (lower.includes("split")) return "Split Bill";
-  return "QRIS";
+  const map: Record<string, OrderStatus> = {
+    pending: "Menunggu Konfirmasi",
+    confirmed: "Diproses",
+    preparing: "Sedang Dimasak",
+    ready: "Siap Diantar",
+    served: "Sudah Diantar",
+    paid: "Sudah Diantar",
+    cancelled: "Ditolak",
+    void: "Dibatalkan",
+  };
+  return map[beStatus] || "Menunggu Konfirmasi";
 }
 
 function mapOptionsToFrontend(options: unknown[]): string[] {

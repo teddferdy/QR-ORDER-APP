@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, Clock, ChefHat, Bike, MapPin } from 'lucide-react';
+import { CheckCircle2, Clock, ChefHat, Bike, MapPin, XCircle, Ban } from 'lucide-react';
 import type { OrderStatus } from '../types';
 
 interface OrderStatusTrackerProps {
@@ -8,11 +8,13 @@ interface OrderStatusTrackerProps {
 }
 
 const statusSteps: { id: OrderStatus; label: string; icon: React.FC<{size?: number}> }[] = [
-  { id: 'Menunggu Konfirmasi', label: 'Dikonfirmasi', icon: CheckCircle2 },
-  { id: 'Diproses', label: 'Diproses', icon: Clock },
+  { id: 'Menunggu Konfirmasi', label: 'Menunggu', icon: Clock },
+  { id: 'Diproses', label: 'Diproses', icon: CheckCircle2 },
   { id: 'Sedang Dimasak', label: 'Dimasak', icon: ChefHat },
   { id: 'Siap Diantar', label: 'Siap', icon: Bike },
   { id: 'Sudah Diantar', label: 'Sampai', icon: MapPin },
+  { id: 'Ditolak', label: 'Ditolak', icon: XCircle },
+  { id: 'Dibatalkan', label: 'Dibatalkan', icon: Ban },
 ];
 
 const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({
@@ -20,6 +22,7 @@ const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({
   compact = false,
 }) => {
   const currentIndex = statusSteps.findIndex((s) => s.id === currentStatus);
+  const isRejected = currentStatus === 'Ditolak' || currentStatus === 'Dibatalkan';
 
   return (
     <div
@@ -30,6 +33,7 @@ const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({
         {statusSteps.map((step, index) => {
           const Icon = step.icon;
           const isCompleted = index <= currentIndex;
+          const isCurrent = index === currentIndex;
           return (
             <div
               key={step.id}
@@ -37,16 +41,22 @@ const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({
             >
               <div
                 className={`p-3 rounded-full transition-all ${
-                  isCompleted
-                    ? 'bg-primary text-white shadow-md shadow-primary/30'
-                    : 'bg-white dark:bg-gray-800 text-gray-400 dark:text-gray-600 border border-gray-200 dark:border-gray-700'
+                  isRejected && isCurrent
+                    ? 'bg-destructive text-white shadow-md shadow-destructive/30'
+                    : isCompleted
+                      ? 'bg-primary text-white shadow-md shadow-primary/30'
+                      : 'bg-white dark:bg-gray-800 text-gray-400 dark:text-gray-600 border border-gray-200 dark:border-gray-700'
                 }`}
               >
                 <Icon size={compact ? 16 : 20} />
               </div>
               <span
                 className={`text-[10px] font-bold text-center ${
-                  isCompleted ? 'text-primary' : 'text-gray-400 dark:text-gray-600'
+                  isCompleted || (isRejected && isCurrent)
+                    ? isRejected && isCurrent
+                      ? 'text-destructive'
+                      : 'text-primary'
+                    : 'text-gray-400 dark:text-gray-600'
                 }`}
               >
                 {step.label}

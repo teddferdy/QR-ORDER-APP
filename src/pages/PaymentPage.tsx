@@ -4,7 +4,7 @@ import { useCartStore } from "../store/useCartStore";
 import { useOrderStore } from "../store/useOrderStore";
 import { useCheckoutStore } from "../store/useCheckoutStore";
 import { useStoreConfig } from "../hooks/useStoreConfig";
-import type { PaymentMethod, OrderStatus } from "../types";
+import type { PaymentMethod } from "../types";
 import PaymentMethods from "../components/PaymentMethods";
 import { ChevronLeft, PartyPopper } from "lucide-react";
 import Skeleton from "../components/Skeleton";

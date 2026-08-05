@@ -16,7 +16,9 @@ export type OrderStatus =
   | "Diproses"
   | "Sedang Dimasak"
   | "Siap Diantar"
-  | "Sudah Diantar";
+  | "Sudah Diantar"
+  | "Ditolak"
+  | "Dibatalkan";
 
 export type PaymentMethod =
   | "QRIS"

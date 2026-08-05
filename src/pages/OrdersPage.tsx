@@ -5,6 +5,39 @@ import OrderStatusTracker from "../components/OrderStatusTracker";
 import { ListOrdered, RefreshCw } from "lucide-react";
 import Skeleton from "../components/Skeleton";
 
+function statusBadgeClass(status: string) {
+  if (status === "Ditolak" || status === "Dibatalkan")
+    return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300";
+  if (status === "Menunggu Konfirmasi")
+    return "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300";
+  if (status === "Sedang Dimasak" || status === "Diproses")
+    return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300";
+  if (status === "Siap Diantar")
+    return "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300";
+  if (status === "Sudah Diantar")
+    return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300";
+  return "bg-primary/10 text-primary";
+}
+
+function statusMessage(status: string) {
+  switch (status) {
+    case "Menunggu Konfirmasi":
+      return "Pesananmu sedang menunggu konfirmasi dari kasir.";
+    case "Ditolak":
+      return "Pesananmu ditolak oleh kasir.";
+    case "Dibatalkan":
+      return "Pesananmu dibatalkan.";
+    case "Sedang Dimasak":
+      return "Pesananmu sedang diproses di dapur.";
+    case "Siap Diantar":
+      return "Pesananmu sudah siap diantar.";
+    case "Sudah Diantar":
+      return "Pesananmu sudah sampai. Terima kasih!";
+    default:
+      return "";
+  }
+}
+
 const OrdersPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -111,10 +144,20 @@ const OrdersPage: React.FC = () => {
                   {order.customerName && ` • ${order.customerName}`}
                 </p>
               </div>
-              <span className="bg-primary/10 text-primary px-3 py-1.5 rounded-full text-xs font-bold">
+              <span
+                className={`px-3 py-1.5 rounded-full text-xs font-bold ${statusBadgeClass(order.status)}`}
+              >
                 {order.status}
               </span>
             </div>
+
+            {statusMessage(order.status) && (
+              <div className="px-5 py-3 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {statusMessage(order.status)}
+                </p>
+              </div>
+            )}
 
             <div className="p-5 space-y-4">
               <OrderStatusTracker currentStatus={order.status} compact />
