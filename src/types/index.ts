@@ -1,23 +1,30 @@
-export type Category = 'Makanan' | 'Minuman' | 'Dessert' | 'Snack' | 'Special';
+export type Category =
+  | "Makanan"
+  | "Minuman"
+  | "Dessert"
+  | "Snack"
+  | "Special"
+  | "Makanan Berat"
+  | "Minuman Dingin";
 
-export type Size = 'Small' | 'Medium' | 'Large';
+export type Size = "Small" | "Medium" | "Large";
 
-export type Spiciness = 'Mild' | 'Medium' | 'Spicy' | 'Extra Spicy';
+export type Spiciness = "Mild" | "Medium" | "Spicy" | "Extra Spicy";
 
 export type OrderStatus =
-  | 'Menunggu Konfirmasi'
-  | 'Diproses'
-  | 'Sedang Dimasak'
-  | 'Siap Diantar'
-  | 'Sudah Diantar';
+  | "Menunggu Konfirmasi"
+  | "Diproses"
+  | "Sedang Dimasak"
+  | "Siap Diantar"
+  | "Sudah Diantar";
 
 export type PaymentMethod =
-  | 'QRIS'
-  | 'E-Wallet'
-  | 'Kartu Kredit'
-  | 'Tunai'
-  | 'Postpaid'
-  | 'Split Bill';
+  | "QRIS"
+  | "E-Wallet"
+  | "Kartu Kredit"
+  | "Tunai"
+  | "Postpaid"
+  | "Split Bill";
 
 export interface AddOn {
   id: string;
@@ -57,6 +64,7 @@ export interface CartItem {
   id: string;
   name: string;
   description: string;
+  basePrice: number;
   price: number;
   image: string;
   category: Category;
@@ -77,6 +85,7 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
+  orderNumber?: string;
   tableNumber: string;
   storeId?: string;
   customerName?: string;
@@ -94,10 +103,13 @@ export interface Order {
 
 export interface WaiterRequest {
   id: string;
-  type: 'Sendok' | 'Tisu' | 'Refill' | 'Bill' | 'Panggil Pelayan';
+  requestNumber: string;
+  type: "Sendok" | "Tisu" | "Refill" | "Bill" | "Panggil Pelayan";
+  tableName?: string;
+  notes?: string | null;
   orderId?: string;
   createdAt: string;
-  status: 'Pending' | 'Received';
+  status: "Pending" | "Approved" | "Rejected" | "Done";
 }
 
 export interface Review {
@@ -107,11 +119,6 @@ export interface Review {
   rating: number;
   comment: string;
   createdAt: string;
-}
-
-export interface OrderHistoryItem {
-  order: Order;
-  reorderAvailable: boolean;
 }
 
 export interface AppSettings {

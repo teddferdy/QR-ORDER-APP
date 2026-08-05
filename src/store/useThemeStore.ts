@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 interface ThemeState {
   isDark: boolean;
@@ -13,7 +13,7 @@ export const useThemeStore = create<ThemeState>()(
       toggleTheme: () => set((state) => ({ isDark: !state.isDark })),
     }),
     {
-      name: 'bisamakan-theme',
-    }
-  )
+      name: "bisamakan-theme",
+    },
+  ),
 );

@@ -1,67 +1,123 @@
 import React, { useState } from 'react';
 import { Headphones } from 'lucide-react';
 import { useOrderStore } from '../store/useOrderStore';
-import type { WaiterRequest } from '../types';
+import { useSettingsStore } from '../store/useSettingsStore';
+import { useSearchParams } from 'react-router-dom';
 
 interface CallWaiterButtonProps {
   orderId?: string;
 }
 
-const waiterRequestTypes: WaiterRequest['type'][] = [
-  'Sendok',
-  'Tisu',
-  'Refill',
-  'Bill',
-  'Panggil Pelayan',
+const waiterRequestTypes: { key: string; label: string; icon: string }[] = [
+  { key: 'sendok', label: 'Sendok', icon: '🥄' },
+  { key: 'tisu', label: 'Tisu', icon: '🧻' },
+  { key: 'refill', label: 'Refill', icon: '🥤' },
+  { key: 'bill', label: 'Bill', icon: '🧾' },
+  { key: 'call', label: 'Panggil Pelayan', icon: '🧑‍🍳' },
 ];
 
-const CallWaiterButton: React.FC<CallWaiterButtonProps> = ({ orderId }) => {
-  const addWaiterRequest = useOrderStore((state) => state.addWaiterRequest);
+const CallWaiterButton: React.FC<CallWaiterButtonProps> = ({ orderId: orderIdProp }) => {
+  const submitWaiterRequest = useOrderStore((state) => state.submitWaiterRequest);
+  const activeOrderId = useOrderStore((state) => state.activeOrderId);
+  const { settings } = useSettingsStore();
+  const [searchParams] = useSearchParams();
   const [showMenu, setShowMenu] = useState(false);
+  const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [notes, setNotes] = useState('');
   const [lastRequest, setLastRequest] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleRequest = (type: WaiterRequest['type']) => {
-    const request: WaiterRequest = {
-      id: crypto.randomUUID(),
-      type,
-      orderId,
-      createdAt: new Date().toISOString(),
-      status: 'Pending',
-    };
-    addWaiterRequest(request);
-    setLastRequest(type);
-    setShowMenu(false);
-    setTimeout(() => setLastRequest(null), 3000);
+  const handleSubmit = async () => {
+    if (!selectedType) return;
+    setSubmitting(true);
+    try {
+      const urlStore = searchParams.get('store');
+      const urlTable = searchParams.get('table');
+      const storeId = urlStore || settings.storeId || '1';
+      const tableId = urlTable
+        ? Number(urlTable)
+        : settings.tableNumber
+          ? Number(settings.tableNumber)
+          : undefined;
+      const label = waiterRequestTypes.find((t) => t.key === selectedType)?.label || selectedType;
+      const rawOrderId = orderIdProp || (activeOrderId ?? undefined);
+      const validOrderId =
+        rawOrderId != null && /^\d+$/.test(String(rawOrderId).trim())
+          ? String(rawOrderId).trim()
+          : undefined;
+      await submitWaiterRequest({
+        store: Number(storeId),
+        type: selectedType,
+        tableId,
+        orderId: validOrderId,
+        notes: notes.trim() || undefined,
+      });
+      setLastRequest(label);
+      setSelectedType(null);
+      setNotes('');
+      setShowMenu(false);
+      setTimeout(() => setLastRequest(null), 3000);
+    } catch {
+      setLastRequest(null);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
-    <div className="fixed bottom-24 left-4 z-40">
+    <div className="space-y-3">
       {lastRequest && (
-        <div className="bg-primary text-white px-4 py-3 rounded-2xl shadow-lg mb-3 flex items-center gap-2 text-sm font-bold animate-pulse">
+        <div className="bg-green-500 text-white px-4 py-3 rounded-2xl shadow-lg flex items-center gap-2 text-sm font-bold animate-pulse">
           <span>✅</span> Permintaan "{lastRequest}" terkirim!
         </div>
       )}
-      <div className="relative">
-        <button
-          onClick={() => setShowMenu(!showMenu)}
-          className="bg-primary text-white p-4 rounded-full shadow-lg hover:bg-primary-light transition-colors"
-        >
-          <Headphones size={24} />
-        </button>
-        {showMenu && (
-          <div className="absolute bottom-16 left-0 bg-white rounded-3xl shadow-xl p-4 space-y-2 w-48">
-            {waiterRequestTypes.map((type) => (
+      <button
+        onClick={() => {
+          setShowMenu(!showMenu);
+          setSelectedType(null);
+        }}
+        disabled={submitting}
+        className="w-full bg-primary text-white py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-shadow tap-scale disabled:opacity-50"
+      >
+        <Headphones size={20} />
+        {submitting ? 'Mengirim...' : 'Pilih Permintaan'}
+      </button>
+      {showMenu && (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-3 space-y-3 border border-gray-100 dark:border-gray-700">
+          <div className="grid grid-cols-2 gap-2">
+            {waiterRequestTypes.map((t) => (
               <button
-                key={type}
-                onClick={() => handleRequest(type)}
-                className="w-full text-left px-4 py-3 rounded-xl text-sm font-medium hover:bg-secondary transition-colors"
+                key={t.key}
+                onClick={() => setSelectedType(t.key)}
+                disabled={submitting}
+                className={`w-full text-left px-3 py-3 rounded-xl text-sm font-medium border transition-colors disabled:opacity-50 ${
+                  selectedType === t.key
+                    ? 'bg-primary/10 text-primary border-primary/40'
+                    : 'text-gray-700 dark:text-gray-300 border-gray-100 dark:border-gray-700 hover:bg-primary/5'
+                }`}
               >
-                {type}
+                <span className="mr-1.5">{t.icon}</span>
+                {t.label}
               </button>
             ))}
           </div>
-        )}
-      </div>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Catatan tambahan (opsional), mis. bawa 2 sendok"
+            rows={2}
+            className="w-full px-3 py-2.5 rounded-xl text-sm bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-700 text-gray-700 dark:text-gray-300 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40"
+          />
+          <button
+            onClick={handleSubmit}
+            disabled={!selectedType || submitting}
+            className="w-full bg-primary text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 disabled:opacity-40"
+          >
+            <Headphones size={16} />
+            {selectedType ? `Kirim ${waiterRequestTypes.find((t) => t.key === selectedType)?.label || ''}` : 'Pilih jenis permintaan'}
+          </button>
+        </div>
+      )}
     </div>
   );
 };

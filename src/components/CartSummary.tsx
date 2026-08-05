@@ -10,27 +10,27 @@ const CartSummary: React.FC<CartSummaryProps> = ({ showDetails = true }) => {
     useCartStore();
 
   return (
-    <div className="bg-white rounded-3xl p-6 space-y-4">
+    <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 space-y-4 border border-gray-50 dark:border-gray-700/50 shadow-sm">
       <div className="flex items-center justify-between">
-        <span className="text-gray-600">Total Item</span>
-        <span className="font-bold">{totalItems()}</span>
+        <span className="text-gray-600 dark:text-gray-400 font-medium">Total Item</span>
+        <span className="font-bold text-gray-900 dark:text-gray-100">{totalItems()}</span>
       </div>
       {showDetails && (
         <>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Subtotal</span>
-            <span>Rp{subtotal().toLocaleString()}</span>
+            <span className="text-gray-500 dark:text-gray-400">Subtotal</span>
+            <span className="text-gray-700 dark:text-gray-300">Rp{subtotal().toLocaleString()}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Pajak (11%)</span>
-            <span>Rp{tax().toLocaleString()}</span>
+            <span className="text-gray-500 dark:text-gray-400">Pajak (11%)</span>
+            <span className="text-gray-700 dark:text-gray-300">Rp{tax().toLocaleString()}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Service Charge (5%)</span>
-            <span>Rp{serviceCharge().toLocaleString()}</span>
+            <span className="text-gray-500 dark:text-gray-400">Service Charge (5%)</span>
+            <span className="text-gray-700 dark:text-gray-300">Rp{serviceCharge().toLocaleString()}</span>
           </div>
-          <div className="border-t pt-3 flex justify-between font-bold text-lg">
-            <span>Total</span>
+          <div className="border-t border-gray-100 dark:border-gray-700 pt-3 flex justify-between font-bold text-lg">
+            <span className="text-gray-900 dark:text-gray-100">Total</span>
             <span className="text-primary">
               Rp{totalPrice().toLocaleString()}
             </span>
@@ -39,7 +39,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ showDetails = true }) => {
       )}
       {!showDetails && (
         <div className="flex justify-between font-bold text-lg">
-          <span>Total</span>
+          <span className="text-gray-900 dark:text-gray-100">Total</span>
           <span className="text-primary">
             Rp{totalPrice().toLocaleString()}
           </span>

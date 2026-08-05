@@ -17,12 +17,14 @@ const Skeleton: React.FC<SkeletonProps> = ({
     width: width ?? '100%',
     height: height ?? '1rem',
     borderRadius,
-    background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
-    backgroundSize: '200% 100%',
-    animation: 'shimmer 1.5s infinite',
   };
 
-  return <div className={`inline-block ${className}`} style={style} />;
+  return (
+    <div
+      className={`inline-block skeleton-shimmer ${className}`}
+      style={style}
+    />
+  );
 };
 
 export default Skeleton;

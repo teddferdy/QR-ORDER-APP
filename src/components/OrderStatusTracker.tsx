@@ -23,10 +23,10 @@ const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({
 
   return (
     <div
-      className={`${compact ? 'py-4' : 'p-6'} bg-white rounded-3xl`}
+      className={`${compact ? 'py-4' : 'p-6'} bg-gray-50 dark:bg-gray-800/50 rounded-3xl border border-gray-100 dark:border-gray-700/50`}
     >
       <div className="relative flex justify-between">
-        <div className="absolute top-5 left-0 w-full h-0.5 bg-gray-100 -z-0" />
+        <div className="absolute top-5 left-0 w-full h-0.5 bg-gray-200 dark:bg-gray-700 -z-0" />
         {statusSteps.map((step, index) => {
           const Icon = step.icon;
           const isCompleted = index <= currentIndex;
@@ -36,17 +36,17 @@ const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({
               className={`flex flex-col items-center gap-2 z-10 ${compact ? 'scale-75' : ''}`}
             >
               <div
-                className={`p-3 rounded-full ${
+                className={`p-3 rounded-full transition-all ${
                   isCompleted
-                    ? 'bg-primary text-white'
-                    : 'bg-gray-100 text-gray-400'
+                    ? 'bg-primary text-white shadow-md shadow-primary/30'
+                    : 'bg-white dark:bg-gray-800 text-gray-400 dark:text-gray-600 border border-gray-200 dark:border-gray-700'
                 }`}
               >
                 <Icon size={compact ? 16 : 20} />
               </div>
               <span
                 className={`text-[10px] font-bold text-center ${
-                  isCompleted ? 'text-primary' : 'text-gray-400'
+                  isCompleted ? 'text-primary' : 'text-gray-400 dark:text-gray-600'
                 }`}
               >
                 {step.label}
@@ -55,7 +55,7 @@ const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({
           );
         })}
       </div>
-      <p className="text-center text-sm font-medium text-gray-600 mt-4">
+      <p className="text-center text-sm font-medium text-gray-600 dark:text-gray-400 mt-4">
         Status: {currentStatus}
       </p>
     </div>

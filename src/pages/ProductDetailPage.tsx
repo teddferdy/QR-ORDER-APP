@@ -1,57 +1,32 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { products, reviews } from '../data/mockData';
-import { useCartStore } from '../store/useCartStore';
-import { Star, ChevronLeft } from 'lucide-react';
-import CustomizationPanel from '../components/CustomizationPanel';
-import Skeleton from '../components/Skeleton';
-import type { Size, Spiciness } from '../types';
+import React, { useState } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useProduct } from "../hooks/useProduct";
+import { useCartStore } from "../store/useCartStore";
+import { Star, ChevronLeft } from "lucide-react";
+import CustomizationPanel from "../components/CustomizationPanel";
+import Skeleton from "../components/Skeleton";
+import type { Size, Spiciness } from "../types";
 
 const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const product = products.find((p) => p.id === id);
+  const [searchParams] = useSearchParams();
+  const store = searchParams.get("store");
+
+  const { product, loading, error } = useProduct(id, store);
   const addItem = useCartStore((state) => state.addItem);
 
+  const href = (path: string) => {
+    const sep = path.includes("?") ? "&" : "?";
+    return `${path}${sep}table=${searchParams.get("table") || ""}&store=${searchParams.get("store") || ""}`;
+  };
+
   const [selectedSize, setSelectedSize] = useState<Size | undefined>();
-  const [selectedSpiciness, setSelectedSpiciness] = useState<Spiciness | undefined>();
+  const [selectedSpiciness, setSelectedSpiciness] = useState<
+    Spiciness | undefined
+  >();
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
-  const [notes, setNotes] = useState('');
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 600);
-    return () => clearTimeout(timer);
-  }, [id]);
-
-  if (!product) return <div className="text-center py-20">Produk tidak ditemukan</div>;
-
-  const handleAddOnToggle = (addOnId: string) => {
-    setSelectedAddOns((prev) =>
-      prev.includes(addOnId)
-        ? prev.filter((a) => a !== addOnId)
-        : [...prev, addOnId]
-    );
-  };
-
-  const handleAddToCart = () => {
-    const customization = {
-      size: selectedSize,
-      spiciness: selectedSpiciness,
-      addOns: product.addOns?.filter((a) => selectedAddOns.includes(a.id)),
-      notes: notes || undefined,
-    };
-    addItem(product, customization);
-    navigate('/cart');
-  };
-
-  const addOnTotal = selectedAddOns.reduce((sum, id) => {
-    const addOn = product.addOns?.find((a) => a.id === id);
-    return sum + (addOn?.price || 0);
-  }, 0);
-
-  const finalPrice = product.price + addOnTotal;
-  const productReviews = reviews.filter((r) => r.productId === product.id);
+  const [notes, setNotes] = useState("");
 
   if (loading) {
     return (
@@ -74,46 +49,107 @@ const ProductDetailPage: React.FC = () => {
     );
   }
 
+  if (error || !product)
+    return (
+      <div className="text-center py-20">
+        <p className="text-5xl mb-4">😕</p>
+        <p className="text-gray-500 dark:text-gray-400 font-medium">
+          {error || "Produk tidak ditemukan"}
+        </p>
+        <button
+          onClick={() => navigate(href("/"))}
+          className="mt-4 text-primary font-bold text-sm"
+        >
+          Kembali ke Menu
+        </button>
+      </div>
+    );
+
+  const handleAddOnToggle = (addOnId: string) => {
+    setSelectedAddOns((prev) =>
+      prev.includes(addOnId)
+        ? prev.filter((a) => a !== addOnId)
+        : [...prev, addOnId],
+    );
+  };
+
+  const handleAddToCart = () => {
+    const customization = {
+      size: selectedSize,
+      spiciness: selectedSpiciness,
+      addOns: product.addOns?.filter((a) => selectedAddOns.includes(a.id)),
+      notes: notes || undefined,
+    };
+    addItem(product, customization);
+    navigate(href("/cart"));
+  };
+
+  const addOnTotal = selectedAddOns.reduce((sum, addOnId) => {
+    const addOn = product.addOns?.find((a) => a.id === addOnId);
+    return sum + (addOn?.price || 0);
+  }, 0);
+
+  const finalPrice = product.price + addOnTotal;
+
   return (
     <div className="pb-20">
       <button
         onClick={() => navigate(-1)}
-        className="mb-4 p-2 bg-white rounded-full shadow"
+        className="mb-4 p-2.5 bg-white dark:bg-gray-800 rounded-full shadow-sm border border-gray-100 dark:border-gray-700 text-gray-700 dark:text-gray-300"
       >
-        <ChevronLeft />
+        <ChevronLeft size={20} />
       </button>
-      <img
-        src={product.image}
-        alt={product.name}
-        className="w-full h-64 object-cover rounded-3xl mb-6"
-      />
 
-      <div className="space-y-4">
+      <div className="relative mb-6">
+        <img
+          src={product.image}
+          alt={product.name}
+          className="w-full h-64 object-cover rounded-3xl"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent rounded-3xl" />
+        {product.isPromo && (
+          <span className="absolute top-4 left-4 bg-accent text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
+            Promo
+          </span>
+        )}
+      </div>
+
+      <div className="space-y-5">
         <div className="flex items-start justify-between">
-          <h1 className="text-3xl font-bold">{product.name}</h1>
-          <div className="flex items-center gap-1 text-accent text-sm font-bold">
-            <Star size={16} fill="currentColor" />
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+            {product.name}
+          </h1>
+          <div className="flex items-center gap-1.5 text-accent text-sm font-bold bg-accent/10 px-3 py-1.5 rounded-full">
+            <Star size={14} fill="currentColor" />
             {product.rating}
           </div>
         </div>
 
-        <p className="text-gray-600">{product.description}</p>
+        <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+          {product.description}
+        </p>
 
-        <div className="flex items-center gap-4 text-sm text-gray-500">
-          <span>⏱ Estimasi {product.estimatedTime} menit</span>
-          <span>
-            {product.stock > 0 ? `✅ Stok: ${product.stock}` : '❌ Habis'}
+        <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+          <span className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-full">
+            ⏱ Estimasi {product.estimatedTime} menit
+          </span>
+          <span
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${product.stock > 0 ? "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400" : "bg-red-50 dark:bg-red-900/20 text-red-500"}`}
+          >
+            {product.stock > 0 ? `✅ Stok: ${product.stock}` : "❌ Habis"}
           </span>
         </div>
 
         {product.ingredients.length > 0 && (
           <div>
-            <h4 className="font-bold text-sm mb-2">Bahan-bahan</h4>
+            <h4 className="font-bold text-sm mb-3 text-gray-900 dark:text-gray-100">
+              Bahan-bahan
+            </h4>
             <div className="flex gap-2 flex-wrap">
               {product.ingredients.map((ing) => (
                 <span
                   key={ing}
-                  className="bg-secondary px-3 py-1 rounded-full text-xs font-medium"
+                  className="bg-secondary dark:bg-gray-700 px-3 py-1.5 rounded-full text-xs font-medium text-gray-600 dark:text-gray-400 border border-gray-100 dark:border-gray-600"
                 >
                   {ing}
                 </span>
@@ -134,68 +170,46 @@ const ProductDetailPage: React.FC = () => {
           onNotesChange={setNotes}
         />
 
-        {/* Reviews Section */}
-        <div className="bg-white rounded-3xl p-6 space-y-4">
-          <h3 className="font-bold text-lg">Ulasan Pembeli</h3>
+        <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 space-y-4 border border-gray-50 dark:border-gray-700/50 shadow-sm">
+          <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100">
+            Ulasan Pembeli
+          </h3>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1 text-accent">
               <Star size={16} fill="currentColor" />
               <span className="font-bold">{product.rating}</span>
             </div>
-            <span className="text-gray-400 text-sm">
+            <span className="text-gray-400 dark:text-gray-500 text-sm">
               ({product.reviewsCount} ulasan)
             </span>
           </div>
-          <div className="space-y-4">
-            {productReviews.map((review) => (
-              <div
-                key={review.id}
-                className="border-b border-gray-100 pb-4 last:border-0 last:pb-0"
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-bold text-sm">
-                    {review.userName}
-                  </span>
-                  <div className="flex items-center gap-1 text-accent text-xs">
-                    {Array.from({ length: 5 }, (_, i) => (
-                      <Star
-                        key={i}
-                        size={12}
-                        fill={i < review.rating ? 'currentColor' : 'none'}
-                      />
-                    ))}
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600">{review.comment}</p>
-                <p className="text-xs text-gray-400 mt-1">
-                  {new Date(review.createdAt).toLocaleDateString('id-ID', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
-                  })}
-                </p>
-              </div>
-            ))}
+          <div className="text-center py-6">
+            <p className="text-gray-400 dark:text-gray-500 text-sm">
+              Ulasan akan segera hadir.
+            </p>
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl p-6 space-y-4">
+        <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 space-y-4 border border-gray-50 dark:border-gray-700/50 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-gray-600">Harga</span>
-            <span className="font-bold text-xl text-primary">
+            <span className="text-gray-600 dark:text-gray-400 font-medium">
+              Harga
+            </span>
+            <span className="font-bold text-2xl text-primary">
               Rp{finalPrice.toLocaleString()}
             </span>
           </div>
           {addOnTotal > 0 && (
-            <div className="text-xs text-gray-400">
+            <div className="text-xs text-gray-400 dark:text-gray-500">
               (+ Rp{addOnTotal.toLocaleString()} topping)
             </div>
           )}
           <button
             onClick={handleAddToCart}
-            className="w-full bg-primary text-white py-4 rounded-2xl font-bold tap-scale"
+            disabled={product.stock <= 0}
+            className="w-full bg-primary text-white py-4 rounded-2xl font-bold tap-scale shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Tambah ke Keranjang
+            {product.stock > 0 ? "Tambah ke Keranjang" : "Stok Habis"}
           </button>
         </div>
       </div>

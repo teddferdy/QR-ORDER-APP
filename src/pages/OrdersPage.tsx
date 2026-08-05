@@ -1,41 +1,31 @@
-import React, { useState, useEffect } from 'react';
-import { useOrderStore } from '../store/useOrderStore';
-import OrderStatusTracker from '../components/OrderStatusTracker';
-import { useNavigate } from 'react-router-dom';
-import Skeleton from '../components/Skeleton';
+import React from "react";
+import { useOrders } from "../hooks/useOrders";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import OrderStatusTracker from "../components/OrderStatusTracker";
+import { ListOrdered, RefreshCw } from "lucide-react";
+import Skeleton from "../components/Skeleton";
 
 const OrdersPage: React.FC = () => {
-  const { orders } = useOrderStore();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
+  const store = searchParams.get("store");
+  const { orders, loading, error, refetch } = useOrders(store);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 600);
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (orders.length === 0) {
-    return (
-      <div className="text-center py-20 text-gray-500">
-        <p className="text-6xl mb-4">📋</p>
-        <p className="text-lg font-medium">Belum ada pesanan nih.</p>
-        <button
-          onClick={() => navigate('/')}
-          className="mt-4 text-primary font-bold underline"
-        >
-          Lihat Menu
-        </button>
-      </div>
-    );
-  }
+  const href = (path: string) => {
+    const sep = path.includes("?") ? "&" : "?";
+    return `${path}${sep}table=${searchParams.get("table") || ""}&store=${searchParams.get("store") || ""}`;
+  };
 
   if (loading) {
     return (
       <div className="space-y-6 pb-20">
-        <Skeleton width="30%" height="2rem" borderRadius="0.5rem" />
+        <Skeleton width="30%" height="2rem" borderRadius="0.75rem" />
         <div className="space-y-4">
           {Array.from({ length: 2 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-3xl p-6 space-y-4">
+            <div
+              key={i}
+              className="bg-white dark:bg-gray-800 rounded-3xl p-6 space-y-4 border border-gray-50 dark:border-gray-700/50"
+            >
               <div className="flex justify-between">
                 <Skeleton width="30%" height="1.2rem" borderRadius="0.5rem" />
                 <Skeleton width="5rem" height="2rem" borderRadius="9999px" />
@@ -53,59 +43,104 @@ const OrdersPage: React.FC = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="text-center py-24">
+        <p className="text-5xl mb-4">⚠️</p>
+        <p className="text-gray-500 dark:text-gray-400 font-medium">{error}</p>
+        <button
+          onClick={() => refetch()}
+          className="mt-4 text-primary font-bold text-sm flex items-center gap-1.5 mx-auto"
+        >
+          <RefreshCw size={14} /> Coba Lagi
+        </button>
+      </div>
+    );
+  }
+
+  if (orders.length === 0) {
+    return (
+      <div className="text-center py-24">
+        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-800 mb-6">
+          <ListOrdered size={36} className="text-gray-400 dark:text-gray-500" />
+        </div>
+        <p className="text-lg font-bold text-gray-700 dark:text-gray-300">
+          Belum ada pesanan nih.
+        </p>
+        <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">
+          Pesan menu favoritmu dulu yuk!
+        </p>
+        <button
+          onClick={() => navigate(href("/"))}
+          className="mt-6 bg-primary text-white px-8 py-3 rounded-2xl font-bold tap-scale shadow-lg shadow-primary/20"
+        >
+          Lihat Menu
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 pb-20">
-      <h2 className="text-2xl font-bold">Status Pesanan</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          Status Pesanan
+        </h2>
+        <button
+          onClick={() => refetch()}
+          className="p-2 rounded-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:text-primary transition-colors"
+        >
+          <RefreshCw size={18} />
+        </button>
+      </div>
 
       <div className="space-y-4">
         {orders.map((order) => (
           <div
             key={order.id}
-            className="bg-white rounded-3xl shadow-sm overflow-hidden"
+            className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm dark:shadow-gray-900/30 overflow-hidden border border-gray-50 dark:border-gray-700/50"
           >
-            <div className="p-4 flex justify-between items-center border-b border-gray-100">
+            <div className="p-5 flex justify-between items-center border-b border-gray-100 dark:border-gray-700">
               <div>
-                <h3 className="font-bold">
-                  Pesanan #{order.id.slice(0, 6).toUpperCase()}
+                <h3 className="font-bold text-gray-900 dark:text-gray-100">
+                  Pesanan #
+                  {(order.orderNumber || order.id).slice(0, 10).toUpperCase()}
                 </h3>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                   Meja {order.tableNumber}
                   {order.customerName && ` • ${order.customerName}`}
                 </p>
               </div>
-              <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold">
+              <span className="bg-primary/10 text-primary px-3 py-1.5 rounded-full text-xs font-bold">
                 {order.status}
               </span>
             </div>
 
-            <div className="p-4 space-y-3">
+            <div className="p-5 space-y-4">
               <OrderStatusTracker currentStatus={order.status} compact />
 
               <div className="space-y-2">
                 {order.items.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="flex justify-between text-sm"
-                  >
-                    <span className="text-gray-600">
+                  <div key={idx} className="flex justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">
                       {item.name} x{item.quantity}
                     </span>
-                    <span className="font-medium">
+                    <span className="font-medium text-gray-900 dark:text-gray-100">
                       Rp{item.totalPrice.toLocaleString()}
                     </span>
                   </div>
                 ))}
               </div>
 
-              <div className="border-t pt-2 flex justify-between font-bold">
-                <span>Total</span>
+              <div className="border-t border-gray-100 dark:border-gray-700 pt-3 flex justify-between font-bold">
+                <span className="text-gray-900 dark:text-gray-100">Total</span>
                 <span className="text-primary">
                   Rp{order.total.toLocaleString()}
                 </span>
               </div>
 
-              <div className="text-xs text-gray-400">
-                {new Date(order.createdAt).toLocaleString('id-ID')}
+              <div className="text-xs text-gray-400 dark:text-gray-500">
+                {new Date(order.createdAt).toLocaleString("id-ID")}
               </div>
             </div>
           </div>

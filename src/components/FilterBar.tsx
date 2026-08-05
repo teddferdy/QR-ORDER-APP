@@ -19,10 +19,10 @@ const FilterBar: React.FC<FilterBarProps> = ({
           <button
             key={filter.id}
             onClick={() => onToggle(filter.id)}
-            className={`flex items-center gap-1 px-4 py-2 rounded-full font-medium whitespace-nowrap transition-all text-sm ${
+            className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full font-medium whitespace-nowrap transition-all text-sm shadow-sm ${
               isActive
-                ? 'bg-primary text-white shadow-lg'
-                : 'bg-white text-gray-600'
+                ? 'bg-primary text-white shadow-md shadow-primary/20'
+                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-100 dark:border-gray-700'
             }`}
           >
             <span>{filter.icon}</span>

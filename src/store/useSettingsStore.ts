@@ -1,5 +1,6 @@
-import { create } from 'zustand';
-import type { AppSettings } from '../types';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import type { AppSettings } from "../types";
 
 interface SettingsState {
   settings: AppSettings;
@@ -9,19 +10,26 @@ interface SettingsState {
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
-  tableNumber: '',
-  storeId: '',
+  tableNumber: "",
+  storeId: "",
 };
 
-export const useSettingsStore = create<SettingsState>()((set) => ({
-  settings: DEFAULT_SETTINGS,
-  setTableNumber: (tableNumber) =>
-    set((state) => ({
-      settings: { ...state.settings, tableNumber },
-    })),
-  setStoreId: (storeId) =>
-    set((state) => ({
-      settings: { ...state.settings, storeId },
-    })),
-  resetSettings: () => set({ settings: DEFAULT_SETTINGS }),
-}));
+export const useSettingsStore = create<SettingsState>()(
+  persist(
+    (set) => ({
+      settings: DEFAULT_SETTINGS,
+      setTableNumber: (tableNumber) =>
+        set((state) => ({
+          settings: { ...state.settings, tableNumber },
+        })),
+      setStoreId: (storeId) =>
+        set((state) => ({
+          settings: { ...state.settings, storeId },
+        })),
+      resetSettings: () => set({ settings: DEFAULT_SETTINGS }),
+    }),
+    {
+      name: "bisamakan-settings",
+    },
+  ),
+);
