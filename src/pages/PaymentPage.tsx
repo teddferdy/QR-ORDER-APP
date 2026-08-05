@@ -66,7 +66,7 @@ const PaymentPage: React.FC = () => {
         tableId: tableNumber ? Number(tableNumber) : undefined,
         customerName: customerName || undefined,
         paymentMethod: selectedMethod,
-        splitCount: selectedMethod === "split" ? splitCount : undefined,
+        splitCount: (selectedMethod as string) === "split" ? splitCount : undefined,
         items: items.map((item) => ({
           productId: Number(item.id),
           productName: item.name,

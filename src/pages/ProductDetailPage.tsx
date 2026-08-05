@@ -1,11 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useProduct } from "../hooks/useProduct";
 import { useCartStore } from "../store/useCartStore";
-import { Star, ChevronLeft } from "lucide-react";
+import { Star, ChevronLeft, Send } from "lucide-react";
 import CustomizationPanel from "../components/CustomizationPanel";
 import Skeleton from "../components/Skeleton";
-import type { Size, Spiciness } from "../types";
+import type { Size, Spiciness, Review } from "../types";
+import { fetchProductReviews } from "../services/productService";
 
 const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -13,7 +14,7 @@ const ProductDetailPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const store = searchParams.get("store");
 
-  const { product, loading, error } = useProduct(id, store);
+  const { product, loading, error } = useProduct(id || null, store);
   const addItem = useCartStore((state) => state.addItem);
 
   const href = (path: string) => {
@@ -27,6 +28,23 @@ const ProductDetailPage: React.FC = () => {
   >();
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [averageRating, setAverageRating] = useState(0);
+  const [totalReviews, setTotalReviews] = useState(0);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (product && store) {
+      fetchProductReviews(product.id, store).then((result) => {
+        setReviews(result.reviews);
+        setAverageRating(result.averageRating);
+        setTotalReviews(result.totalReviews);
+      });
+    }
+  }, [product, store]);
 
   if (loading) {
     return (
@@ -91,6 +109,45 @@ const ProductDetailPage: React.FC = () => {
 
   const finalPrice = product.price + addOnTotal;
 
+  const handleReviewSubmit = async () => {
+    if (reviewRating === 0 || !reviewComment.trim()) return;
+    setReviewSubmitting(true);
+    try {
+      const { createReview } = await import("../services/reviewService");
+      await createReview({
+        productId: product.id,
+        storeId: store || "",
+        rating: reviewRating,
+        comment: reviewComment.trim(),
+        orderId: "",
+      });
+      setReviews((prev) => [
+        {
+                      id: Date.now().toString(),
+                      userId: "",
+                      userName: "Anda",
+                      rating: reviewRating,
+                      comment: reviewComment.trim(),
+                      createdAt: new Date().toISOString(),
+                      orderId: "",
+                      productId: product.id,
+                    },
+        ...prev,
+      ]);
+      setAverageRating(
+        (prev) => (prev * totalReviews + reviewRating) / (totalReviews + 1),
+      );
+      setTotalReviews((prev) => prev + 1);
+      setReviewRating(0);
+      setReviewComment("");
+      setShowReviewForm(false);
+    } catch {
+      /* ignore */
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
+
   return (
     <div className="pb-20">
       <button
@@ -121,7 +178,7 @@ const ProductDetailPage: React.FC = () => {
           </h1>
           <div className="flex items-center gap-1.5 text-accent text-sm font-bold bg-accent/10 px-3 py-1.5 rounded-full">
             <Star size={14} fill="currentColor" />
-            {product.rating}
+            {averageRating > 0 ? averageRating.toFixed(1) : product.rating}
           </div>
         </div>
 
@@ -177,17 +234,122 @@ const ProductDetailPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1 text-accent">
               <Star size={16} fill="currentColor" />
-              <span className="font-bold">{product.rating}</span>
+              <span className="font-bold">
+                {averageRating > 0 ? averageRating.toFixed(1) : product.rating}
+              </span>
             </div>
             <span className="text-gray-400 dark:text-gray-500 text-sm">
-              ({product.reviewsCount} ulasan)
+              ({totalReviews > 0 ? totalReviews : product.reviewsCount} ulasan)
             </span>
           </div>
-          <div className="text-center py-6">
-            <p className="text-gray-400 dark:text-gray-500 text-sm">
-              Ulasan akan segera hadir.
-            </p>
-          </div>
+
+          {reviews.length > 0 ? (
+            <div className="space-y-4">
+              {reviews.map((review) => (
+                <div
+                  key={review.id}
+                  className="border border-gray-100 dark:border-gray-700 rounded-2xl p-4 space-y-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-sm text-gray-900 dark:text-gray-100">
+                      {review.userName}
+                    </span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500">
+                      {new Date(review.createdAt).toLocaleDateString("id-ID", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-0.5">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star
+                        key={i}
+                        size={14}
+                        fill={i < review.rating ? "#f59e0b" : "none"}
+                        stroke={i < review.rating ? "#f59e0b" : "#d1d5db"}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    {review.comment}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-4">
+              <p className="text-gray-400 dark:text-gray-500 text-sm">
+                Belum ada ulasan untuk produk ini.
+              </p>
+            </div>
+          )}
+
+          {!showReviewForm ? (
+            <button
+              onClick={() => setShowReviewForm(true)}
+              className="w-full flex items-center justify-center gap-2 bg-primary/10 text-primary py-3 rounded-2xl font-bold text-sm tap-scale hover:bg-primary hover:text-white transition-colors"
+            >
+              <Star size={16} />
+              Tulis Ulasan
+            </button>
+          ) : (
+            <div className="space-y-3">
+              <div>
+                <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Rating
+                </p>
+                <div className="flex gap-1">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setReviewRating(i + 1)}
+                      className="p-1"
+                    >
+                      <Star
+                        size={20}
+                        fill={i < reviewRating ? "#f59e0b" : "none"}
+                        stroke={i < reviewRating ? "#f59e0b" : "#d1d5db"}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Komentar
+                </p>
+                <textarea
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  placeholder="Tulis pengalamanmu..."
+                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                  rows={3}
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setShowReviewForm(false);
+                    setReviewRating(0);
+                    setReviewComment("");
+                  }}
+                  className="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 py-3 rounded-2xl font-bold text-sm"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleReviewSubmit}
+                  disabled={reviewSubmitting}
+                  className="flex-1 bg-primary text-white py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-1.5"
+                >
+                  <Send size={14} />
+                  {reviewSubmitting ? "Mengirim..." : "Kirim"}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 space-y-4 border border-gray-50 dark:border-gray-700/50 shadow-sm">

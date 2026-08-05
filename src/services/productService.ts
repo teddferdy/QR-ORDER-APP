@@ -1,5 +1,5 @@
 import apiClient from "./apiClient";
-import type { Product, Category, AddOn } from "../types";
+import type { Product, Category, AddOn, Review } from "../types";
 
 interface CustomerMenuResponse {
   message: string;
@@ -50,6 +50,17 @@ interface BackendProduct {
   updatedAt: string;
   deletedAt: string | null;
   categoryData: { name: string } | null;
+  reviews?: BackendReview[];
+  averageRating?: number;
+  totalReviews?: number;
+}
+
+interface BackendReview {
+  id: number;
+  userName: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
 }
 
 interface BackendCategory {
@@ -123,6 +134,19 @@ function mapBackendModifiersToFrontend(modifiers: unknown[]): AddOn[] {
     }));
 }
 
+function mapBackendReviewToFrontend(br: BackendReview, productId: string): Review {
+  return {
+    id: String(br.id),
+    userId: "",
+    userName: br.userName,
+    rating: br.rating,
+    comment: br.comment,
+    createdAt: br.createdAt,
+    orderId: "",
+    productId,
+  };
+}
+
 export function mapBackendProductToFrontend(
   bp: BackendProduct,
   storeId?: string,
@@ -143,8 +167,9 @@ export function mapBackendProductToFrontend(
       bp.image ||
       "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=500&auto=format&fit=crop",
     category: mapCategoryName(categoryName),
-    rating: 0,
-    reviewsCount: 0,
+    rating: bp.averageRating ?? 0,
+    reviewsCount: bp.totalReviews ?? bp.reviews?.length ?? 0,
+    reviews: bp.reviews?.map((r) => mapBackendReviewToFrontend(r, String(bp.id))),
     isBestSeller: false,
     isPromo: false,
     isVegetarian: false,
@@ -213,5 +238,41 @@ export async function fetchProductById(
     return mapBackendProductToFrontend(raw, storeId);
   } catch {
     return null;
+  }
+}
+
+export async function fetchProductReviews(
+  productId: string,
+  storeId: string,
+): Promise<{ reviews: Review[]; averageRating: number; totalReviews: number }> {
+  try {
+    const { data } = await apiClient.get<CustomerMenuResponse>(
+      "/order/customer-menu",
+      {
+        params: { store: storeId },
+      },
+    );
+    const raw = data.data.products.find(
+      (p) => String(p.id) === String(productId),
+    );
+    if (!raw) return { reviews: [], averageRating: 0, totalReviews: 0 };
+    const reviews =
+      raw.reviews?.map((r) => ({
+        id: String(r.id),
+        userId: "",
+        userName: r.userName,
+        rating: r.rating,
+        comment: r.comment,
+        createdAt: r.createdAt,
+        orderId: "",
+        productId: String(raw.id),
+      })) || [];
+    return {
+      reviews,
+      averageRating: raw.averageRating ?? 0,
+      totalReviews: raw.totalReviews ?? reviews.length,
+    };
+  } catch {
+    return { reviews: [], averageRating: 0, totalReviews: 0 };
   }
 }

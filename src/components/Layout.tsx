@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Outlet, Link, useLocation, useSearchParams } from 'react-router-dom';
 import { Home, ShoppingBag, ListOrdered, Headphones, User, AlertTriangle } from 'lucide-react';
 import { useCartStore } from '../store/useCartStore';
@@ -22,7 +22,7 @@ function buildHref(base: string, params: URLSearchParams) {
   return `${base}${sep}table=${encodeURIComponent(table)}&store=${encodeURIComponent(store)}`;
 }
 
-const NavLinks: React.FC<{ badge?: number; params: URLSearchParams }> = ({ badge, params }) => {
+const NavLinks: React.FC<{ badge?: number }> = ({ badge }) => {
   const location = useLocation();
 
   const currentParams = new URLSearchParams(location.search);
@@ -98,7 +98,7 @@ const MissingParamsPage: React.FC = () => (
 const Layout: React.FC = () => {
   const [searchParams] = useSearchParams();
   const totalItems = useCartStore((state) => state.totalItems());
-  const { settings, setTableNumber, setStoreId } = useSettingsStore();
+  const { setTableNumber, setStoreId } = useSettingsStore();
   const setActiveOrder = useOrderStore((state) => state.setActiveOrder);
 
   const table = searchParams.get('table');
@@ -139,7 +139,7 @@ const Layout: React.FC = () => {
             Bisa Makan
           </Link>
           <nav className="flex items-center gap-4">
-            <NavLinks badge={totalItems} params={searchParams} />
+            <NavLinks badge={totalItems} />
             <ThemeToggle />
           </nav>
         </div>
@@ -171,7 +171,7 @@ const Layout: React.FC = () => {
 
       {/* Mobile Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-gray-800/90 backdrop-blur-lg border-t border-gray-100 dark:border-gray-700/50 px-2 py-2 flex justify-around items-center md:hidden z-50 safe-bottom">
-        <NavLinks badge={totalItems} params={searchParams} />
+        <NavLinks badge={totalItems} />
       </nav>
     </div>
   );

@@ -112,7 +112,10 @@ export const useOrderStore = create<OrderState>()(
         }),
 
       submitWaiterRequest: async (params) => {
-        const result = await createWaiterRequest(params);
+        const result = await createWaiterRequest({
+          ...params,
+          orderId: params.orderId ? Number(params.orderId) : undefined,
+        });
         const request: WaiterRequest = {
           id: result.id,
           requestNumber: result.requestNumber,

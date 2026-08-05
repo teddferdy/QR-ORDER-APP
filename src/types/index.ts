@@ -43,6 +43,7 @@ export interface Product {
   category: Category;
   rating: number;
   reviewsCount: number;
+  reviews?: Review[];
   isBestSeller: boolean;
   isPromo: boolean;
   isVegetarian: boolean;
@@ -116,11 +117,13 @@ export interface WaiterRequest {
 
 export interface Review {
   id: string;
-  productId: string;
+  userId: string;
   userName: string;
+  productId: string;
   rating: number;
   comment: string;
   createdAt: string;
+  orderId: string;
 }
 
 export interface AppSettings {

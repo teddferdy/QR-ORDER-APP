@@ -1,4 +1,4 @@
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, type NavigateOptions } from "react-router-dom";
 
 export function useAppNavigate() {
   const navigate = useNavigate();
@@ -8,7 +8,7 @@ export function useAppNavigate() {
 
   const appNavigate = (
     to: string,
-    options?: Parameters<typeof navigate>[1],
+    options?: NavigateOptions,
   ) => {
     if (to.startsWith("http") || to.startsWith("//")) {
       window.location.href = to;

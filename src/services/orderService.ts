@@ -41,6 +41,7 @@ interface BackendOrder {
   totalCovers: number;
   shiftId: number;
   promoCampaignId: number | null;
+  splitCount: number | null;
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
