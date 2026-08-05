@@ -123,15 +123,15 @@ const ProductDetailPage: React.FC = () => {
       });
       setReviews((prev) => [
         {
-                      id: Date.now().toString(),
-                      userId: "",
-                      userName: "Anda",
-                      rating: reviewRating,
-                      comment: reviewComment.trim(),
-                      createdAt: new Date().toISOString(),
-                      orderId: "",
-                      productId: product.id,
-                    },
+          id: Date.now().toString(),
+          userId: "",
+          userName: "Anda",
+          rating: reviewRating,
+          comment: reviewComment.trim(),
+          createdAt: new Date().toISOString(),
+          orderId: "",
+          productId: product.id,
+        },
         ...prev,
       ]);
       setAverageRating(
