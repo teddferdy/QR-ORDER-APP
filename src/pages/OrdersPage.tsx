@@ -38,16 +38,28 @@ function statusMessage(status: string) {
   }
 }
 
+const ACTIVE_STATUSES = new Set([
+  "Menunggu Konfirmasi",
+  "Diproses",
+  "Sedang Dimasak",
+  "Siap Diantar",
+]);
+
 const OrdersPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const store = searchParams.get("store");
-  const { orders, loading, error, refetch } = useOrders(store);
+  const table = searchParams.get("table");
+  const { orders, loading, error, refetch } = useOrders(store, table ? { tableId: table } : undefined);
 
   const href = (path: string) => {
     const sep = path.includes("?") ? "&" : "?";
     return `${path}${sep}table=${searchParams.get("table") || ""}&store=${searchParams.get("store") || ""}`;
   };
+
+  const activeOrders = table
+    ? orders.filter((o) => ACTIVE_STATUSES.has(o.status))
+    : orders;
 
   if (loading) {
     return (
@@ -91,6 +103,28 @@ const OrdersPage: React.FC = () => {
     );
   }
 
+  if (table && activeOrders.length === 0 && orders.length > 0) {
+    return (
+      <div className="text-center py-24">
+        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-800 mb-6">
+          <ListOrdered size={36} className="text-gray-400 dark:text-gray-500" />
+        </div>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+          Meja {table}
+        </h2>
+        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
+          Tidak ada pesanan aktif untuk meja ini.
+        </p>
+        <button
+          onClick={() => navigate(href("/"))}
+          className="mt-6 bg-primary text-white px-8 py-3 rounded-2xl font-bold tap-scale shadow-lg shadow-primary/20"
+        >
+          Mulai Pesanan Baru
+        </button>
+      </div>
+    );
+  }
+
   if (orders.length === 0) {
     return (
       <div className="text-center py-24">
@@ -117,7 +151,7 @@ const OrdersPage: React.FC = () => {
     <div className="space-y-6 pb-20">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-          Status Pesanan
+          {table ? `Meja ${table}` : "Status Pesanan"}
         </h2>
         <button
           onClick={() => refetch()}
@@ -128,7 +162,7 @@ const OrdersPage: React.FC = () => {
       </div>
 
       <div className="space-y-4">
-        {orders.map((order) => (
+        {activeOrders.map((order) => (
           <div
             key={order.id}
             className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm dark:shadow-gray-900/30 overflow-hidden border border-gray-50 dark:border-gray-700/50"

@@ -111,6 +111,24 @@ function mapStatus(beStatus: string): OrderStatus {
   return map[beStatus] || "Menunggu Konfirmasi";
 }
 
+function mapPaymentMethod(method: string | null): PaymentMethod {
+  if (!method) return "QRIS";
+  const lower = method.toLowerCase();
+  if (lower.includes("qris")) return "QRIS";
+  if (lower.includes("cash") || lower.includes("tunai")) return "Tunai";
+  if (lower.includes("credit") || lower.includes("kartu"))
+    return "Kartu Kredit";
+  if (
+    lower.includes("ewallet") ||
+    lower.includes("e-wallet") ||
+    lower.includes("e wallet")
+  )
+    return "E-Wallet";
+  if (lower.includes("postpaid") || lower.includes("bayar")) return "Postpaid";
+  if (lower.includes("split")) return "Split Bill";
+  return "QRIS";
+}
+
 function mapOptionsToFrontend(options: unknown[]): string[] {
   if (!Array.isArray(options)) return [];
   return options
