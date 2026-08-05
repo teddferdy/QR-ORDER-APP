@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import Layout from "./components/Layout";
 import ErrorBoundary from "./components/ErrorBoundary";
 import HomePage from "./pages/HomePage";
@@ -13,6 +13,11 @@ import OrderHistoryPage from "./pages/OrderHistoryPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import { useThemeStore } from "./store/useThemeStore";
 import "./index.css";
+
+const DetailProductRedirect: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/product/${id}`} replace />;
+};
 
 const App: React.FC = () => {
   const { isDark } = useThemeStore();
@@ -32,6 +37,7 @@ const App: React.FC = () => {
           <Route path="/" element={<Layout />}>
             <Route index element={<HomePage />} />
             <Route path="product/:id" element={<ProductDetailPage />} />
+            <Route path="detail-product/:id" element={<DetailProductRedirect />} />
             <Route path="cart" element={<CartPage />} />
             <Route path="checkout" element={<CheckoutPage />} />
             <Route path="payment" element={<PaymentPage />} />
