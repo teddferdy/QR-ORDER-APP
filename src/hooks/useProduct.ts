@@ -20,15 +20,18 @@ export function useProduct(
   const fetchData = useCallback(async () => {
     if (!productId) {
       setLoading(false);
+      setProduct(null);
       return;
     }
     setLoading(true);
     setError(null);
+    setProduct(null);
     try {
       const result = await fetchProductById(productId, storeId || undefined);
-      setProduct(result);
+      setProduct(result ?? null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal memuat produk");
+      setProduct(null);
     } finally {
       setLoading(false);
     }
