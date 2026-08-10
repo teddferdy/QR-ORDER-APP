@@ -13,7 +13,7 @@ const CartPage: React.FC = () => {
 
   const href = (path: string) => {
     const sep = path.includes("?") ? "&" : "?";
-    return `${path}${sep}table=${searchParams.get("table") || ""}&store=${searchParams.get("store") || ""}`;
+    return `${path}${sep}table=${searchParams.get("table") || ""}&store=${searchParams.get("store") || ""}&session=${searchParams.get("session") || ""}`;
   };
 
   useEffect(() => {

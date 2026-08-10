@@ -18,7 +18,7 @@ const RETRY_BASE_DELAY = 1000;
 
 export function useOrders(
   storeId: string | null,
-  options?: { tableId?: string; page?: number; limit?: number },
+  options?: { tableId?: string; session?: string; page?: number; limit?: number },
 ): UseOrdersResult {
   const [orders, setOrders] = useState<Order[]>([]);
   const [total, setTotal] = useState(0);
@@ -89,7 +89,7 @@ export function useOrders(
         }, delay);
       }
     }
-  }, [storeId, options?.tableId, options?.page, options?.limit]);
+  }, [storeId, options?.tableId, options?.session, options?.page, options?.limit]);
 
   useEffect(() => {
     fetchData();

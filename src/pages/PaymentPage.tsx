@@ -20,7 +20,7 @@ const PaymentPage: React.FC = () => {
 
   const href = (path: string) => {
     const sep = path.includes("?") ? "&" : "?";
-    return `${path}${sep}table=${searchParams.get("table") || ""}&store=${searchParams.get("store") || ""}`;
+    return `${path}${sep}table=${searchParams.get("table") || ""}&store=${searchParams.get("store") || ""}&session=${searchParams.get("session") || ""}`;
   };
 
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>("QRIS");
@@ -66,6 +66,7 @@ const PaymentPage: React.FC = () => {
         tableId: tableNumber ? Number(tableNumber) : undefined,
         customerName: customerName || undefined,
         paymentMethod: selectedMethod,
+        session: searchParams.get("session") || undefined,
         splitCount: (selectedMethod as string) === "split" ? splitCount : undefined,
         items: items.map((item) => ({
           productId: Number(item.id),

@@ -21,6 +21,7 @@ interface OrderState {
     customerName?: string;
     notes?: string;
     paymentMethod?: string;
+    session?: string;
     splitCount?: number;
     items: {
       productId: number;

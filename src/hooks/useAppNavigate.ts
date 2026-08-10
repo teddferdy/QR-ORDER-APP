@@ -5,6 +5,7 @@ export function useAppNavigate() {
   const [searchParams] = useSearchParams();
   const table = searchParams.get("table") || "";
   const store = searchParams.get("store") || "";
+  const session = searchParams.get("session") || "";
 
   const appNavigate = (
     to: string,
@@ -16,13 +17,13 @@ export function useAppNavigate() {
     }
 
     const separator = to.includes("?") ? "&" : "?";
-    const url = `${to}${separator}table=${encodeURIComponent(table)}&store=${encodeURIComponent(store)}`;
+    const url = `${to}${separator}table=${encodeURIComponent(table)}&store=${encodeURIComponent(store)}&session=${encodeURIComponent(session)}`;
     navigate(url, options);
   };
 
   const appHref = (to: string) => {
     const separator = to.includes("?") ? "&" : "?";
-    return `${to}${separator}table=${encodeURIComponent(table)}&store=${encodeURIComponent(store)}`;
+    return `${to}${separator}table=${encodeURIComponent(table)}&store=${encodeURIComponent(store)}&session=${encodeURIComponent(session)}`;
   };
 
   return { appNavigate, appHref };

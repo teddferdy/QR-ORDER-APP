@@ -18,8 +18,9 @@ const navItems = [
 function buildHref(base: string, params: URLSearchParams) {
   const table = params.get('table') || '';
   const store = params.get('store') || '';
+  const session = params.get('session') || '';
   const sep = base.includes('?') ? '&' : '?';
-  return `${base}${sep}table=${encodeURIComponent(table)}&store=${encodeURIComponent(store)}`;
+  return `${base}${sep}table=${encodeURIComponent(table)}&store=${encodeURIComponent(store)}&session=${encodeURIComponent(session)}`;
 }
 
 const NavLinks: React.FC<{ badge?: number }> = ({ badge }) => {
@@ -28,6 +29,7 @@ const NavLinks: React.FC<{ badge?: number }> = ({ badge }) => {
   const currentParams = new URLSearchParams(location.search);
   const table = currentParams.get('table') || '';
   const store = currentParams.get('store') || '';
+  const session = currentParams.get('session') || '';
 
       return (
         <>
@@ -40,7 +42,7 @@ const NavLinks: React.FC<{ badge?: number }> = ({ badge }) => {
         return (
           <Link
             key={item.path}
-            to={`${item.path}?table=${encodeURIComponent(table)}&store=${encodeURIComponent(store)}`}
+            to={`${item.path}?table=${encodeURIComponent(table)}&store=${encodeURIComponent(store)}&session=${encodeURIComponent(session)}`}
             className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all ${
               isActive
                 ? 'text-primary bg-primary/10'

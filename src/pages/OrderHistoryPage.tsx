@@ -21,6 +21,7 @@ const OrderHistoryPage: React.FC = () => {
   const navigate = useNavigate();
   const addItem = useCartStore((state) => state.addItem);
   const store = searchParams.get("store");
+  const session = searchParams.get("session") || undefined;
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [total, setTotal] = useState(0);
@@ -32,7 +33,7 @@ const OrderHistoryPage: React.FC = () => {
 
   const href = (path: string) => {
     const sep = path.includes("?") ? "&" : "?";
-    return `${path}${sep}table=${searchParams.get("table") || ""}&store=${searchParams.get("store") || ""}`;
+    return `${path}${sep}table=${searchParams.get("table") || ""}&store=${searchParams.get("store") || ""}&session=${searchParams.get("session") || ""}`;
   };
 
   const fetchOrders = useCallback(async () => {
@@ -43,6 +44,7 @@ const OrderHistoryPage: React.FC = () => {
       const result = await fetchCustomerOrders(store, {
         page,
         limit,
+        session,
       });
       let filtered = result.orders;
       if (statusFilter === "completed") {
@@ -63,7 +65,7 @@ const OrderHistoryPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [store, page, limit, statusFilter]);
+  }, [store, session, page, limit, statusFilter]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect

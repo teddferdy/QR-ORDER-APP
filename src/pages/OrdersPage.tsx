@@ -50,11 +50,12 @@ const OrdersPage: React.FC = () => {
   const navigate = useNavigate();
   const store = searchParams.get("store");
   const table = searchParams.get("table");
-  const { orders, loading, error, refetch } = useOrders(store, table ? { tableId: table } : undefined);
+  const session = searchParams.get("session") || undefined;
+  const { orders, loading, error, refetch } = useOrders(store, table ? { tableId: table, session } : undefined);
 
   const href = (path: string) => {
     const sep = path.includes("?") ? "&" : "?";
-    return `${path}${sep}table=${searchParams.get("table") || ""}&store=${searchParams.get("store") || ""}`;
+    return `${path}${sep}table=${searchParams.get("table") || ""}&store=${searchParams.get("store") || ""}&session=${searchParams.get("session") || ""}`;
   };
 
   const activeOrders = table

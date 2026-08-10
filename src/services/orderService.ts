@@ -205,6 +205,7 @@ export interface CreateOrderPayload {
   customerName?: string;
   notes?: string;
   paymentMethod?: string;
+  session?: string;
   splitCount?: number;
   items: {
     productId: number;
@@ -266,11 +267,12 @@ export async function fetchCustomerOrder(
 
 export async function fetchCustomerOrders(
   storeId: string,
-  options?: { tableId?: string; page?: number; limit?: number },
+  options?: { tableId?: string; session?: string; page?: number; limit?: number },
 ): Promise<{ orders: Order[]; total: number }> {
   try {
     const params: Record<string, string | number> = { store: storeId };
     if (options?.tableId) params.tableId = options.tableId;
+    if (options?.session) params.session = options.session;
     if (options?.page) params.page = options.page;
     if (options?.limit) params.limit = options.limit;
 
