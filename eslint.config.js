@@ -18,5 +18,12 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      // React Compiler-era rules: flag existing data-fetching patterns.
+      // Downgraded until the hooks are refactored (e.g. to react-query).
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/immutability': 'warn',
+      'react-hooks/purity': 'warn',
+    },
   },
 ])
