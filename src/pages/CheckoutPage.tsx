@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useCartStore } from "../store/useCartStore";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import CartSummary from "../components/CartSummary";
@@ -17,13 +17,9 @@ const CheckoutPage: React.FC = () => {
     const sep = path.includes("?") ? "&" : "?";
     return `${path}${sep}table=${searchParams.get("table") || ""}&store=${searchParams.get("store") || ""}&session=${searchParams.get("session") || ""}`;
   };
-  const [tableNumber, setTableNumber] = useState("");
+  const [tableNumber, setTableNumber] = useState(settings.tableNumber || "");
   const [customerName, setCustomerName] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    if (settings.tableNumber) setTableNumber(settings.tableNumber);
-  }, [settings.tableNumber]);
 
   if (items.length === 0) {
     return (

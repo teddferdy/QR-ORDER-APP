@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useTransition } from "react";
 import { fetchBundles } from "../services/productService";
 import type { Bundle } from "../types";
 
@@ -13,23 +13,31 @@ export function useBundles(storeId: string | null): UseBundlesResult {
   const [bundles, setBundles] = useState<Bundle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await fetchBundles(storeId || undefined);
-      setBundles(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Gagal memuat bundle");
-    } finally {
-      setLoading(false);
-    }
-  }, [storeId]);
+  const [trigger, setTrigger] = useState(0);
+  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    let cancelled = false;
 
-  return { bundles, loading, error, refetch: fetchData };
+    startTransition(async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await fetchBundles(storeId || undefined);
+        if (!cancelled) setBundles(result);
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Gagal memuat bundle");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [storeId, trigger]);
+
+  const refetch = useCallback(() => setTrigger((t) => t + 1), []);
+
+  return { bundles, loading: loading || isPending, error, refetch };
 }

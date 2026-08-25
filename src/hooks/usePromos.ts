@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useTransition } from "react";
 import { fetchCustomerPromos } from "../services/productService";
 import type { PromoCampaign } from "../types";
 
@@ -13,23 +13,31 @@ export function usePromos(storeId: string | null): UsePromosResult {
   const [promos, setPromos] = useState<PromoCampaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await fetchCustomerPromos(storeId || undefined);
-      setPromos(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Gagal memuat promo");
-    } finally {
-      setLoading(false);
-    }
-  }, [storeId]);
+  const [trigger, setTrigger] = useState(0);
+  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    let cancelled = false;
 
-  return { promos, loading, error, refetch: fetchData };
+    startTransition(async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await fetchCustomerPromos(storeId || undefined);
+        if (!cancelled) setPromos(result);
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Gagal memuat promo");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [storeId, trigger]);
+
+  const refetch = useCallback(() => setTrigger((t) => t + 1), []);
+
+  return { promos, loading: loading || isPending, error, refetch };
 }
