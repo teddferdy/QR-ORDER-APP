@@ -422,6 +422,5 @@ export async function fetchCustomerPromos(storeId?: string): Promise<PromoCampai
       params: storeId ? { store: storeId } : {},
     },
   );
-  return data.data ?? []
-      .map(mapBackendPromoToFrontend);
+  return (data.data ?? []).map(mapBackendPromoToFrontend);
 }
