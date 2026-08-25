@@ -37,7 +37,7 @@ export function usePromos(storeId: string | null): UsePromosResult {
     };
   }, [storeId, trigger]);
 
-  const refetch = useCallback(() => setTrigger((t) => t + 1), []);
+  const refetch = useCallback(() => { setTrigger((t) => t + 1); }, []);
 
   return { promos, loading: loading || isPending, error, refetch };
 }

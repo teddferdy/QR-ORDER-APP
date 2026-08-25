@@ -37,7 +37,7 @@ export function useBundles(storeId: string | null): UseBundlesResult {
     };
   }, [storeId, trigger]);
 
-  const refetch = useCallback(() => setTrigger((t) => t + 1), []);
+  const refetch = useCallback(() => { setTrigger((t) => t + 1); }, []);
 
   return { bundles, loading: loading || isPending, error, refetch };
 }

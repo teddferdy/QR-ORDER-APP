@@ -143,7 +143,7 @@ export function useOrders(
     };
   }, [storeId]);
 
-  const refetch = useCallback(() => setTrigger((t) => t + 1), []);
+  const refetch = useCallback(() => { setTrigger((t) => t + 1); }, []);
 
   return { orders, total, loading, error, refetch };
 }

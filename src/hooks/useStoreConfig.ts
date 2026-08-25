@@ -50,7 +50,7 @@ export function useStoreConfig(storeId: string | null): UseStoreConfigResult {
     };
   }, [storeId, trigger]);
 
-  const refetch = useCallback(() => setTrigger((t) => t + 1), []);
+  const refetch = useCallback(() => { setTrigger((t) => t + 1); }, []);
 
   return { config, loading: loading || isPending, error, refetch };
 }

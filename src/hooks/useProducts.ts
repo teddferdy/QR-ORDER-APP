@@ -49,7 +49,7 @@ export function useProducts(storeId: string | null): UseProductsResult {
     };
   }, [storeId, trigger]);
 
-  const refetch = useCallback(() => setTrigger((t) => t + 1), []);
+  const refetch = useCallback(() => { setTrigger((t) => t + 1); }, []);
 
   return { products, categories, loading: loading || isPending, error, refetch };
 }

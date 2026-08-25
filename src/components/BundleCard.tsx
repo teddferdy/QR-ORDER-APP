@@ -47,7 +47,7 @@ const BundleCard: React.FC<BundleCardProps> = ({ bundle }) => {
 
   return (
     <div
-      onClick={() => navigate(href(`/product/bundle-${bundle.id}`))}
+      onClick={() => { navigate(href(`/product/bundle-${bundle.id}`)); }}
       className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm dark:shadow-gray-900/30 overflow-hidden tap-scale cursor-pointer border border-gray-50 dark:border-gray-700/50 transition-colors"
     >
       <div className="relative">
