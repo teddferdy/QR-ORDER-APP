@@ -24,18 +24,23 @@ const BundleCard: React.FC<BundleCardProps> = ({ bundle }) => {
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // Map bundle items to product-like structure for cart
     bundle.items.forEach((item) => {
       addItem({
         id: `bundle-${bundle.id}-${item.productId}`,
         name: `${bundle.name} - ${item.productName}`,
-        description: bundle.description,
-        basePrice: item.unitPrice,
+        description: bundle.description || "",
         price: item.unitPrice,
         image: item.productImage || firstItemImage,
         category: "Special" as const,
-        quantity: item.quantity,
-        totalPrice: item.unitPrice * item.quantity,
+        rating: 0,
+        reviewsCount: 0,
+        isBestSeller: false,
+        isPromo: false,
+        isVegetarian: false,
+        estimatedTime: 0,
+        stock: item.quantity || 999,
+        storeId: searchParams.get("store") || "",
+        ingredients: [],
       });
     });
   };
