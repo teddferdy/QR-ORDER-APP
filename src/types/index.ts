@@ -126,7 +126,57 @@ export interface Review {
   orderId: string;
 }
 
+export interface BundleItem {
+  id: string;
+  bundleId: string;
+  productId: string;
+  productName: string;
+  productImage: string;
+  quantity: number;
+  unitPrice: number;
+  isOptional: boolean;
+}
+
+export interface Bundle {
+  id: string;
+  name: string;
+  sku: string;
+  description: string;
+  image: string | null;
+  bundlePrice: number;
+  originalPrice: number;
+  discountAmount: number;
+  discountPercentage: number;
+  minQuantity: number;
+  maxQuantity: number | null;
+  isAvailable: boolean;
+  status: string;
+  validFrom: string;
+  validUntil: string;
+  items: BundleItem[];
+}
+
 export interface AppSettings {
   tableNumber: string;
   storeId: string;
+}
+
+// ponytail: promo campaign untuk banner customer app
+export interface PromoCampaign {
+  id: string;
+  name: string;
+  description: string;
+  code: string;
+  type: string;
+  discountType: string;
+  discountValue: number;
+  maxDiscount: number | null;
+  minPurchase: number;
+  startDate: string;
+  endDate: string;
+  startTime: string | null;
+  endTime: string | null;
+  daysOfWeek: string[] | null;
+  applicableTo: string;
+  priority: number;
 }

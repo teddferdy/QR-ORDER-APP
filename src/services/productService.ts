@@ -1,5 +1,5 @@
 import apiClient from "./apiClient";
-import type { Product, Category, AddOn, Review } from "../types";
+import type { Product, Category, AddOn, Review, Bundle, PromoCampaign } from "../types";
 
 interface CustomerMenuResponse {
   message: string;
@@ -275,4 +275,153 @@ export async function fetchProductReviews(
   } catch {
     return { reviews: [], averageRating: 0, totalReviews: 0 };
   }
+}
+
+// ─── Product Bundles ─────────────────────────────────────────────
+
+interface BackendBundleItem {
+  id: number;
+  bundleId: number;
+  product: number;
+  quantity: number;
+  unitPrice: number;
+  isOptional: boolean;
+  productData: {
+    id: number;
+    nameProduct: string;
+    price: number;
+    image: string | null;
+    stock: number;
+  } | null;
+}
+
+interface BackendBundle {
+  id: number;
+  store: number[] | null;
+  name: string;
+  sku: string;
+  description: string | null;
+  image: string | null;
+  bundlePrice: number;
+  originalPrice: number;
+  discountAmount: number;
+  discountPercentage: string;
+  minQuantity: number;
+  maxQuantity: number | null;
+  isAvailable: boolean;
+  status: string;
+  validFrom: string;
+  validUntil: string;
+  items: BackendBundleItem[];
+}
+
+interface BundleListResponse {
+  message: string;
+  data: {
+    items: BackendBundle[];
+  };
+}
+
+function mapBackendBundleToFrontend(bb: BackendBundle): Bundle {
+  const items = (bb.items || []).map((bi) => ({
+    id: String(bi.id),
+    bundleId: String(bi.bundleId),
+    productId: String(bi.product),
+    productName: bi.productData?.nameProduct || "",
+    productImage: bi.productData?.image || "",
+    quantity: bi.quantity,
+    unitPrice: bi.unitPrice,
+    isOptional: bi.isOptional,
+  }));
+
+  return {
+    id: String(bb.id),
+    name: bb.name,
+    sku: bb.sku,
+    description: bb.description || "",
+    image: bb.image,
+    bundlePrice: bb.bundlePrice,
+    originalPrice: bb.originalPrice,
+    discountAmount: bb.discountAmount,
+    discountPercentage: parseFloat(bb.discountPercentage) || 0,
+    minQuantity: bb.minQuantity,
+    maxQuantity: bb.maxQuantity,
+    isAvailable: bb.isAvailable,
+    status: bb.status,
+    validFrom: bb.validFrom,
+    validUntil: bb.validUntil,
+    items,
+  };
+}
+
+export async function fetchBundles(storeId?: string): Promise<Bundle[]> {
+  const { data } = await apiClient.get<BundleListResponse>(
+    "/product-bundle/get-all",
+    {
+      params: {
+        page: 1,
+        limit: 50,
+        ...(storeId ? { store: storeId } : {}),
+      },
+    },
+  );
+  return (data.data.items || [])
+    .filter((b) => b.status === "active" && b.isAvailable)
+    .map(mapBackendBundleToFrontend);
+}
+
+// ─── Customer Promos (Banner) ─────────────────────────────────────
+
+interface CustomerPromoResponse {
+  success: boolean;
+  message: string;
+  data: Array<{
+    id: number;
+    name: string;
+    description: string | null;
+    code: string | null;
+    type: string;
+    discountType: string;
+    discountValue: number;
+    maxDiscount: number | null;
+    minPurchase: number;
+    startDate: string;
+    endDate: string;
+    startTime: string | null;
+    endTime: string | null;
+    daysOfWeek: string[] | null;
+    applicableTo: string;
+    priority: number;
+  }>;
+}
+
+function mapBackendPromoToFrontend(bp: CustomerPromoResponse["data"][number]): PromoCampaign {
+  return {
+    id: String(bp.id),
+    name: bp.name,
+    description: bp.description || "",
+    code: bp.code || "",
+    type: bp.type,
+    discountType: bp.discountType,
+    discountValue: bp.discountValue,
+    maxDiscount: bp.maxDiscount,
+    minPurchase: bp.minPurchase,
+    startDate: bp.startDate,
+    endDate: bp.endDate,
+    startTime: bp.startTime,
+    endTime: bp.endTime,
+    daysOfWeek: bp.daysOfWeek,
+    applicableTo: bp.applicableTo,
+    priority: bp.priority,
+  };
+}
+
+export async function fetchCustomerPromos(storeId?: string): Promise<PromoCampaign[]> {
+  const { data } = await apiClient.get<CustomerPromoResponse>(
+    "/promo/customer-active",
+    {
+      params: storeId ? { store: storeId } : {},
+    },
+  );
+  return (data.data || []).map(mapBackendPromoToFrontend);
 }
