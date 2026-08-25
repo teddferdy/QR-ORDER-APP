@@ -365,12 +365,11 @@ export async function fetchBundles(storeId?: string): Promise<Bundle[]> {
       },
     },
   );
-  return data.data?.items ?? []
+const bundles = (data.data?.items ?? []) as Array<{ status: string; isAvailable: boolean }>;
+  return bundles
     .filter((b) => b.status === "active" && b.isAvailable)
     .map(mapBackendBundleToFrontend);
 }
-
-// ─── Customer Promos (Banner) ─────────────────────────────────────
 
 interface CustomerPromoResponse {
   success: boolean;
