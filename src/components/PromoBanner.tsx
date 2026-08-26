@@ -81,7 +81,7 @@ const PromoBanner: React.FC<PromoBannerProps> = ({ promos, className = "" }) => 
 
   if (total === 0) return null;
 
-  const promo: PromoCampaign = promos[current]; // NOSONAR
+  const promo = promos.find((_, i) => i === current) as PromoCampaign;
   const gradient = GRADIENTS[current % GRADIENTS.length];
 
   return (
