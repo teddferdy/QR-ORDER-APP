@@ -365,7 +365,7 @@ export async function fetchBundles(storeId?: string): Promise<Bundle[]> {
       },
     },
   );
-const bundles = (data.data?.items ?? []) as Array<{ status: string; isAvailable: boolean }>;
+  const bundles = (data.data?.items ?? []) as BackendBundle[];
   return bundles
     .filter((b) => b.status === "active" && b.isAvailable)
     .map(mapBackendBundleToFrontend);
