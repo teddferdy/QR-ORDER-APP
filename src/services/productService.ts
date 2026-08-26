@@ -323,7 +323,7 @@ interface BundleListResponse {
 }
 
 function mapBackendBundleToFrontend(bb: BackendBundle): Bundle {
-  const items = bb.items?.map((bi) => ({
+  const items = bb.items.map((bi) => ({
     id: String(bi.id),
     bundleId: String(bi.bundleId),
     productId: String(bi.product),
@@ -365,7 +365,7 @@ export async function fetchBundles(storeId?: string): Promise<Bundle[]> {
       },
     },
   );
-  const bundles = (data.data?.items ?? []) as BackendBundle[];
+  const bundles = (data.data.items ?? []) as BackendBundle[];
   return bundles
     .filter((b) => b.status === "active" && b.isAvailable)
     .map(mapBackendBundleToFrontend);
@@ -422,5 +422,5 @@ export async function fetchCustomerPromos(storeId?: string): Promise<PromoCampai
       params: storeId ? { store: storeId } : {},
     },
   );
-  return (data.data ?? []).map(mapBackendPromoToFrontend);
+  return data.data.map(mapBackendPromoToFrontend);
 }

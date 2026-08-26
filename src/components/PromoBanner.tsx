@@ -81,7 +81,7 @@ const PromoBanner: React.FC<PromoBannerProps> = ({ promos, className = "" }) => 
 
   if (total === 0) return null;
 
-  const promo = promos[current] ?? null;
+  const promo = promos[current];
   const gradient = GRADIENTS[current % GRADIENTS.length];
 
   return (
@@ -166,7 +166,7 @@ const PromoBanner: React.FC<PromoBannerProps> = ({ promos, className = "" }) => 
           {promos.map((_, idx) => (
             <button
               key={idx}
-              onClick={() => setCurrent(idx)}
+              onClick={() => { setCurrent(idx); }}
               className={`h-1.5 rounded-full transition-all duration-300 ${
                 idx === current
                   ? "w-5 bg-white"
