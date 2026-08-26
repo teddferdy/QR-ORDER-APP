@@ -1,10 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useProducts } from "../hooks/useProducts";
+import { useBundles } from "../hooks/useBundles";
+import { usePromos } from "../hooks/usePromos";
 import { useStoreConfig } from "../hooks/useStoreConfig";
 import SearchBar from "../components/SearchBar";
 import FilterBar from "../components/FilterBar";
 import MenuCard from "../components/MenuCard";
+import BundleCard from "../components/BundleCard";
+import PromoBanner from "../components/PromoBanner";
 import Skeleton from "../components/Skeleton";
 import type { Category } from "../types";
 
@@ -21,6 +25,8 @@ const HomePage: React.FC = () => {
   const store = searchParams.get("store");
 
   const { products, categories, loading, error } = useProducts(store);
+  const { bundles } = useBundles(store);
+  const { promos } = usePromos(store);
   const { config } = useStoreConfig(store);
 
   const toggleFilter = (id: string) => {
@@ -49,6 +55,16 @@ const HomePage: React.FC = () => {
       matchesVegetarian
     );
   });
+
+  const filteredBundles = useMemo(() => {
+    if (!searchQuery.trim()) return bundles;
+    const q = searchQuery.trim().toLowerCase();
+    return bundles.filter(
+      (b) =>
+        b.name.toLowerCase().includes(q) ||
+        b.description.toLowerCase().includes(q),
+    );
+  }, [bundles, searchQuery]);
 
   if (loading) {
     return (
@@ -116,6 +132,8 @@ const HomePage: React.FC = () => {
         </div>
       </header>
 
+      {promos.length > 0 && <PromoBanner promos={promos} />}
+
       <SearchBar value={searchQuery} onChange={setSearchQuery} />
 
       <FilterBar
@@ -150,7 +168,7 @@ const HomePage: React.FC = () => {
         ))}
       </div>
 
-      {filteredProducts.length === 0 ? (
+      {filteredProducts.length === 0 && filteredBundles.length === 0 ? (
         <div className="text-center py-20">
           <p className="text-5xl mb-4">🔍</p>
           <p className="text-gray-500 dark:text-gray-400 font-medium">
@@ -161,11 +179,32 @@ const HomePage: React.FC = () => {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredProducts.map((product) => (
-            <MenuCard key={product.id} product={product} />
-          ))}
-        </div>
+        <>
+          {/* ponytail: bundle section */}
+          {filteredBundles.length > 0 && (
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                  🎁 Bundle Spesial
+                </h2>
+                <span className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-full text-xs font-bold">
+                  {filteredBundles.length}
+                </span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filteredBundles.map((bundle) => (
+                  <BundleCard key={bundle.id} bundle={bundle} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filteredProducts.map((product) => (
+              <MenuCard key={product.id} product={product} />
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

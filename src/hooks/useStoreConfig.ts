@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useTransition } from "react";
 import { fetchStoreConfig } from "../services/storeService";
 import type { StoreConfig } from "../services/storeService";
 
@@ -19,28 +19,38 @@ export function useStoreConfig(storeId: string | null): UseStoreConfigResult {
   const [config, setConfig] = useState<StoreConfig>(DEFAULT_CONFIG);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const fetchData = useCallback(async () => {
-    if (!storeId) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await fetchStoreConfig(storeId);
-      setConfig(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Gagal memuat konfigurasi");
-      setConfig(DEFAULT_CONFIG);
-    } finally {
-      setLoading(false);
-    }
-  }, [storeId]);
+  const [trigger, setTrigger] = useState(0);
+  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    let cancelled = false;
 
-  return { config, loading, error, refetch: fetchData };
+    startTransition(async () => {
+      if (!storeId) {
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await fetchStoreConfig(storeId);
+        if (!cancelled) setConfig(result);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Gagal memuat konfigurasi");
+          setConfig(DEFAULT_CONFIG);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [storeId, trigger]);
+
+  const refetch = useCallback(() => { setTrigger((t) => t + 1); }, []);
+
+  return { config, loading: loading || isPending, error, refetch };
 }
