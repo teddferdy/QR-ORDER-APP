@@ -40,6 +40,7 @@ export interface Product {
   description: string;
   price: number;
   image: string;
+  images: string[];
   category: Category;
   rating: number;
   reviewsCount: number;

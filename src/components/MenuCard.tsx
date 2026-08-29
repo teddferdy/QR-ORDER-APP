@@ -1,8 +1,9 @@
-import React from 'react';
-import { Star, Plus } from 'lucide-react';
+import React, { useState } from 'react';
+import { Star, Plus, Eye } from 'lucide-react';
 import type { Product } from '../types';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useCartStore } from '../store/useCartStore';
+import ProductQuickPreview from './ProductQuickPreview';
 
 interface MenuCardProps {
   product: Product;
@@ -11,6 +12,7 @@ interface MenuCardProps {
 const MenuCard: React.FC<MenuCardProps> = ({ product }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const [previewOpen, setPreviewOpen] = useState(false);
   const addItem = useCartStore((state) => state.addItem);
 
   const href = (path: string) => {
@@ -21,6 +23,16 @@ const MenuCard: React.FC<MenuCardProps> = ({ product }) => {
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
     addItem(product);
+  };
+
+  const openPreview = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPreviewOpen(true);
+  };
+
+  const addFromPreview = () => {
+    addItem(product);
+    setPreviewOpen(false);
   };
 
   return (
@@ -51,6 +63,14 @@ const MenuCard: React.FC<MenuCardProps> = ({ product }) => {
             Habis
           </span>
         )}
+        <button
+          type="button"
+          onClick={openPreview}
+          aria-label="Preview produk"
+          className="absolute bottom-3 right-3 w-9 h-9 rounded-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border border-gray-100 dark:border-gray-700 text-gray-700 dark:text-gray-300 flex items-center justify-center shadow-sm hover:bg-white dark:hover:bg-gray-800 transition-colors"
+        >
+          <Eye size={16} />
+        </button>
       </div>
       <div className="p-4 space-y-2.5">
         <div className="flex items-start justify-between gap-2">
@@ -80,6 +100,13 @@ const MenuCard: React.FC<MenuCardProps> = ({ product }) => {
           )}
         </div>
       </div>
+
+      <ProductQuickPreview
+        product={product}
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        onAdd={addFromPreview}
+      />
     </div>
   );
 };

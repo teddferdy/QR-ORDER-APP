@@ -31,6 +31,7 @@ const BundleCard: React.FC<BundleCardProps> = ({ bundle }) => {
         description: bundle.description || "",
         price: item.unitPrice,
         image: item.productImage || firstItemImage,
+        images: [item.productImage || firstItemImage],
         category: "Special" as const,
         rating: 0,
         reviewsCount: 0,
