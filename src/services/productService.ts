@@ -86,6 +86,13 @@ const CATEGORY_ICONS: Record<string, string> = {
   Special: "⭐",
 };
 
+const hasOwn = (obj: object, key: string): boolean =>
+  Object.prototype.hasOwnProperty.call(obj, key);
+
+function safeIcon(catName: string): string {
+  return hasOwn(CATEGORY_ICONS, catName) ? CATEGORY_ICONS[catName] : "🍽️";
+}
+
 const CATEGORY_MAP: Record<string, Category> = {
   Makanan: "Makanan",
   Minuman: "Minuman",
@@ -156,14 +163,7 @@ export function mapBackendProductToFrontend(
   const addOns = mapBackendModifiersToFrontend(bp.modifiers);
   const ingredients = Array.isArray(bp.composition)
     ? bp.composition
-        .map((c) =>
-          typeof c === "string"
-            ? c
-            : typeof c === "object" && c !== null && "name" in c
-              ? String(c.name)
-              : "",
-        )
-        .map((name) => name.trim())
+        .map((c) => (typeof c === "string" ? c : c.name).trim())
         .filter(Boolean)
     : [];
   const categoryName = bp.categoryData?.name || "Makanan";
@@ -226,7 +226,7 @@ export async function fetchCustomerMenu(storeId: string): Promise<{
     categoriesMap.set(catName, {
       id: catName,
       name: catName,
-      icon: cat.image || CATEGORY_ICONS[catName] || "🍽️",
+      icon: cat.image || safeIcon(catName),
     });
   });
 
@@ -236,7 +236,7 @@ export async function fetchCustomerMenu(storeId: string): Promise<{
       categoriesMap.set(catName, {
         id: catName,
         name: catName,
-        icon: CATEGORY_ICONS[catName] || "🍽️",
+        icon: safeIcon(catName),
       });
     }
     return mapBackendProductToFrontend(bp, storeId);

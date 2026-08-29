@@ -104,7 +104,9 @@ const MenuCard: React.FC<MenuCardProps> = ({ product }) => {
       <ProductQuickPreview
         product={product}
         open={previewOpen}
-        onClose={() => setPreviewOpen(false)}
+        onClose={() => {
+          setPreviewOpen(false);
+        }}
         onAdd={addFromPreview}
       />
     </div>

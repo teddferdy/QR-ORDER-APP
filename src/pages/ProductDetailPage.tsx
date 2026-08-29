@@ -281,14 +281,18 @@ const ProductDetailPage: React.FC = () => {
                 {safeIndex + 1} / {galleryImages.length}
               </span>
               <button
-                onClick={() => scrollToIndex(safeIndex - 1)}
+                onClick={() => {
+                  scrollToIndex(safeIndex - 1);
+                }}
                 aria-label="Foto sebelumnya"
                 className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full backdrop-blur-sm transition-colors"
               >
                 <ChevronLeft size={20} />
               </button>
               <button
-                onClick={() => scrollToIndex(safeIndex + 1)}
+                onClick={() => {
+                  scrollToIndex(safeIndex + 1);
+                }}
                 aria-label="Foto berikutnya"
                 className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full backdrop-blur-sm transition-colors"
               >
@@ -298,7 +302,9 @@ const ProductDetailPage: React.FC = () => {
                 {galleryImages.map((_, i) => (
                   <button
                     key={i}
-                    onClick={() => scrollToIndex(i)}
+                    onClick={() => {
+                      scrollToIndex(i);
+                    }}
                     aria-label={`Lihat foto ${i + 1}`}
                     className={`h-1.5 rounded-full transition-all ${
                       i === safeIndex
@@ -316,7 +322,9 @@ const ProductDetailPage: React.FC = () => {
             {galleryImages.map((src, i) => (
               <button
                 key={`${src}-${i}`}
-                onClick={() => scrollToIndex(i)}
+                onClick={() => {
+                  scrollToIndex(i);
+                }}
                 className={`shrink-0 rounded-xl overflow-hidden border-2 transition-all ${
                   i === safeIndex
                     ? "border-primary ring-2 ring-primary/20"
@@ -343,11 +351,11 @@ const ProductDetailPage: React.FC = () => {
           <div className="relative shrink-0">
             <select
               value={reviewSort}
-              onChange={(e) =>
+              onChange={(e) => {
                 setReviewSort(
                   e.target.value as "terbaru" | "terlama" | "bintang",
-                )
-              }
+                );
+              }}
               aria-label="Urutkan ulasan"
               className="appearance-none pl-3.5 pr-8 py-2 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs font-semibold text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
             >
@@ -457,7 +465,9 @@ const ProductDetailPage: React.FC = () => {
                 {sortedReviews.length} ulasan
               </p>
               <button
-                onClick={() => setVisibleReviews((c) => c + 5)}
+                onClick={() => {
+                  setVisibleReviews((c) => c + 5);
+                }}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-600 dark:text-gray-300 tap-scale hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               >
                 <ChevronDown size={16} />
@@ -493,7 +503,9 @@ const ProductDetailPage: React.FC = () => {
               </p>
               <input
                 value={reviewName}
-                onChange={(e) => setReviewName(e.target.value)}
+                onChange={(e) => {
+                  setReviewName(e.target.value);
+                }}
                 placeholder="Tulis namamu..."
                 className="w-full border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
