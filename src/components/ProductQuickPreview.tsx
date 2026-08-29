@@ -11,11 +11,6 @@ interface ProductQuickPreviewProps {
   onAdd: (e: React.MouseEvent) => void;
 }
 
-const safeAt = <T,>(arr: readonly T[] | undefined, i: number): T | undefined =>
-  Array.isArray(arr) && Number.isInteger(i) && i >= 0 && i < arr.length
-    ? arr[i]
-    : undefined;
-
 const ProductQuickPreview: React.FC<ProductQuickPreviewProps> = ({
   product,
   open,
@@ -59,7 +54,7 @@ const ProductQuickPreview: React.FC<ProductQuickPreviewProps> = ({
           >
             <div className="relative">
               <img
-                src={safeAt(galleryImages, safeIndex)}
+                src={galleryImages.at(safeIndex)}
                 alt={product.name}
                 className="w-full h-60 sm:h-64 object-cover"
               />

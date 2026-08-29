@@ -78,20 +78,16 @@ interface BackendCategory {
   deletedAt: string | null;
 }
 
-const CATEGORY_ICONS: Record<string, string> = {
-  Makanan: "🍚",
-  Minuman: "🥤",
-  Dessert: "🍰",
-  Snack: "🍟",
-  Special: "⭐",
-};
+const CATEGORY_ICONS: ReadonlyArray<readonly [string, string]> = [
+  ["Makanan", "🍚"],
+  ["Minuman", "🥤"],
+  ["Dessert", "🍰"],
+  ["Snack", "🍟"],
+  ["Special", "⭐"],
+];
 
-const hasOwn = (obj: object, key: string): boolean =>
-  Object.prototype.hasOwnProperty.call(obj, key);
-
-function safeIcon(catName: string): string {
-  return hasOwn(CATEGORY_ICONS, catName) ? CATEGORY_ICONS[catName] : "🍽️";
-}
+const safeIcon = (catName: string): string =>
+  CATEGORY_ICONS.find(([key]) => key === catName)?.[1] ?? "🍽️";
 
 const CATEGORY_MAP: Record<string, Category> = {
   Makanan: "Makanan",
