@@ -138,6 +138,9 @@ export const products: Product[] = [
     price: 35000,
     image:
       "https://images.unsplash.com/photo-1512058560566-42724afbc2db?q=80&w=500&auto=format&fit=crop",
+    images: [
+      "https://images.unsplash.com/photo-1512058560566-42724afbc2db?q=80&w=500&auto=format&fit=crop"
+    ],
     category: "Makanan",
     rating: 4.8,
     reviewsCount: 124,
@@ -161,6 +164,9 @@ export const products: Product[] = [
     price: 45000,
     image:
       "https://images.unsplash.com/photo-1529692236671-f1f6e9460272?q=80&w=500&auto=format&fit=crop",
+    images: [
+      "https://images.unsplash.com/photo-1529692236671-f1f6e9460272?q=80&w=500&auto=format&fit=crop"
+    ],
     category: "Makanan",
     rating: 4.9,
     reviewsCount: 89,
@@ -182,6 +188,9 @@ export const products: Product[] = [
     price: 8000,
     image:
       "https://images.unsplash.com/photo-1556679343-c7306c1976bc?q=80&w=500&auto=format&fit=crop",
+    images: [
+      "https://images.unsplash.com/photo-1556679343-c7306c1976bc?q=80&w=500&auto=format&fit=crop"
+    ],
     category: "Minuman",
     rating: 4.7,
     reviewsCount: 250,
@@ -204,6 +213,9 @@ export const products: Product[] = [
     price: 20000,
     image:
       "https://images.unsplash.com/photo-1590004953392-5aba2e785943?q=80&w=500&auto=format&fit=crop",
+    images: [
+      "https://images.unsplash.com/photo-1590004953392-5aba2e785943?q=80&w=500&auto=format&fit=crop"
+    ],
     category: "Snack",
     rating: 4.6,
     reviewsCount: 56,
@@ -225,6 +237,9 @@ export const products: Product[] = [
     price: 25000,
     image:
       "https://images.unsplash.com/photo-1584947848529-397efb16c1f7?q=80&w=500&auto=format&fit=crop",
+    images: [
+      "https://images.unsplash.com/photo-1584947848529-397efb16c1f7?q=80&w=500&auto=format&fit=crop"
+    ],
     category: "Minuman",
     rating: 4.8,
     reviewsCount: 78,
@@ -247,6 +262,9 @@ export const products: Product[] = [
     price: 55000,
     image:
       "https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=500&auto=format&fit=crop",
+    images: [
+      "https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=500&auto=format&fit=crop"
+    ],
     category: "Makanan",
     rating: 4.9,
     reviewsCount: 67,
@@ -268,6 +286,9 @@ export const products: Product[] = [
     price: 35000,
     image:
       "https://images.unsplash.com/photo-1563805042-7684c019e1cb?q=80&w=500&auto=format&fit=crop",
+    images: [
+      "https://images.unsplash.com/photo-1563805042-7684c019e1cb?q=80&w=500&auto=format&fit=crop"
+    ],
     category: "Dessert",
     rating: 4.5,
     reviewsCount: 42,
@@ -289,6 +310,9 @@ export const products: Product[] = [
     price: 18000,
     image:
       "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?q=80&w=500&auto=format&fit=crop",
+    images: [
+      "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?q=80&w=500&auto=format&fit=crop"
+    ],
     category: "Minuman",
     rating: 4.8,
     reviewsCount: 156,
@@ -310,6 +334,9 @@ export const products: Product[] = [
     price: 18000,
     image:
       "https://images.unsplash.com/photo-1631452180519-c014fe946bc7?q=80&w=500&auto=format&fit=crop",
+    images: [
+      "https://images.unsplash.com/photo-1631452180519-c014fe946bc7?q=80&w=500&auto=format&fit=crop"
+    ],
     category: "Snack",
     rating: 4.4,
     reviewsCount: 33,
@@ -331,6 +358,9 @@ export const products: Product[] = [
     price: 40000,
     image:
       "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?q=80&w=500&auto=format&fit=crop",
+    images: [
+      "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?q=80&w=500&auto=format&fit=crop"
+    ],
     category: "Dessert",
     rating: 4.7,
     reviewsCount: 91,
@@ -352,6 +382,9 @@ export const products: Product[] = [
     price: 32000,
     image:
       "https://images.unsplash.com/photo-1562967914-608f82629710?q=80&w=500&auto=format&fit=crop",
+    images: [
+      "https://images.unsplash.com/photo-1562967914-608f82629710?q=80&w=500&auto=format&fit=crop"
+    ],
     category: "Makanan",
     rating: 4.6,
     reviewsCount: 74,
@@ -375,6 +408,9 @@ export const products: Product[] = [
     price: 12000,
     image:
       "https://images.unsplash.com/photo-1546173159-315724a31696?q=80&w=500&auto=format&fit=crop",
+    images: [
+      "https://images.unsplash.com/photo-1546173159-315724a31696?q=80&w=500&auto=format&fit=crop"
+    ],
     category: "Minuman",
     rating: 4.3,
     reviewsCount: 88,

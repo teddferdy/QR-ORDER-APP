@@ -14,6 +14,7 @@ interface BackendProduct {
   nameProduct: string;
   sku: string;
   image: string | null;
+  images?: string[] | null;
   barcode: string | null;
   brand: string | null;
   category: number;
@@ -44,7 +45,7 @@ interface BackendProduct {
   foodCostPersen: number;
   marginPersen: number;
   isAvailableHariIni: boolean;
-  composition: string[];
+  composition: (string | { name: string; qty?: number; unit?: string })[];
   estimationTime: number;
   createdAt: string;
   updatedAt: string;
@@ -77,13 +78,16 @@ interface BackendCategory {
   deletedAt: string | null;
 }
 
-const CATEGORY_ICONS: Record<string, string> = {
-  Makanan: "🍚",
-  Minuman: "🥤",
-  Dessert: "🍰",
-  Snack: "🍟",
-  Special: "⭐",
-};
+const CATEGORY_ICONS: ReadonlyArray<readonly [string, string]> = [
+  ["Makanan", "🍚"],
+  ["Minuman", "🥤"],
+  ["Dessert", "🍰"],
+  ["Snack", "🍟"],
+  ["Special", "⭐"],
+];
+
+const safeIcon = (catName: string): string =>
+  CATEGORY_ICONS.find(([key]) => key === catName)?.[1] ?? "🍽️";
 
 const CATEGORY_MAP: Record<string, Category> = {
   Makanan: "Makanan",
@@ -154,7 +158,9 @@ export function mapBackendProductToFrontend(
   const sizes = mapBackendOptionsToFrontend(bp.options);
   const addOns = mapBackendModifiersToFrontend(bp.modifiers);
   const ingredients = Array.isArray(bp.composition)
-    ? bp.composition.filter((c): c is string => typeof c === "string")
+    ? bp.composition
+        .map((c) => (typeof c === "string" ? c : c.name).trim())
+        .filter(Boolean)
     : [];
   const categoryName = bp.categoryData?.name || "Makanan";
 
@@ -163,7 +169,14 @@ export function mapBackendProductToFrontend(
     name: bp.nameProduct,
     description: bp.description || "",
     price: bp.price,
+    images:
+      bp.images?.length
+        ? bp.images
+        : bp.image
+          ? [bp.image]
+          : [],
     image:
+      bp.images?.[0] ||
       bp.image ||
       "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=500&auto=format&fit=crop",
     category: mapCategoryName(categoryName),
@@ -200,14 +213,26 @@ export async function fetchCustomerMenu(storeId: string): Promise<{
     },
   );
 
-  const seen = new Map<string, MenuCategoryUI>();
+  const categoriesMap = new Map<string, MenuCategoryUI>();
+
+  data.data.categories.forEach((cat) => {
+    const catName = cat.name || cat.value;
+    if (!catName || cat.status === "inactive") return;
+    if (categoriesMap.has(catName)) return;
+    categoriesMap.set(catName, {
+      id: catName,
+      name: catName,
+      icon: cat.image || safeIcon(catName),
+    });
+  });
+
   const products = data.data.products.map((bp) => {
     const catName = bp.categoryData?.name || "Makanan";
-    if (!seen.has(catName)) {
-      seen.set(catName, {
+    if (!categoriesMap.has(catName)) {
+      categoriesMap.set(catName, {
         id: catName,
         name: catName,
-        icon: CATEGORY_ICONS[catName] || "🍽️",
+        icon: safeIcon(catName),
       });
     }
     return mapBackendProductToFrontend(bp, storeId);
@@ -215,7 +240,7 @@ export async function fetchCustomerMenu(storeId: string): Promise<{
 
   return {
     products,
-    categories: Array.from(seen.values()),
+    categories: Array.from(categoriesMap.values()),
   };
 }
 
@@ -238,42 +263,6 @@ export async function fetchProductById(
     return mapBackendProductToFrontend(raw, storeId);
   } catch {
     return null;
-  }
-}
-
-export async function fetchProductReviews(
-  productId: string,
-  storeId: string,
-): Promise<{ reviews: Review[]; averageRating: number; totalReviews: number }> {
-  try {
-    const { data } = await apiClient.get<CustomerMenuResponse>(
-      "/order/customer-menu",
-      {
-        params: { store: storeId },
-      },
-    );
-    const raw = data.data.products.find(
-      (p) => String(p.id) === String(productId),
-    );
-    if (!raw) return { reviews: [], averageRating: 0, totalReviews: 0 };
-    const reviews =
-      raw.reviews?.map((r) => ({
-        id: String(r.id),
-        userId: "",
-        userName: r.userName,
-        rating: r.rating,
-        comment: r.comment,
-        createdAt: r.createdAt,
-        orderId: "",
-        productId: String(raw.id),
-      })) || [];
-    return {
-      reviews,
-      averageRating: raw.averageRating ?? 0,
-      totalReviews: raw.totalReviews ?? reviews.length,
-    };
-  } catch {
-    return { reviews: [], averageRating: 0, totalReviews: 0 };
   }
 }
 

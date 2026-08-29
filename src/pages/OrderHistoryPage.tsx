@@ -111,6 +111,7 @@ const OrderHistoryPage: React.FC = () => {
         description: "",
         price: item.price,
         image: item.image || "",
+        images: item.image ? [item.image] : [],
         category: "Makanan" as const,
         rating: 0,
         reviewsCount: 0,

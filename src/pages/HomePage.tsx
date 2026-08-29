@@ -9,6 +9,7 @@ import FilterBar from "../components/FilterBar";
 import MenuCard from "../components/MenuCard";
 import BundleCard from "../components/BundleCard";
 import PromoBanner from "../components/PromoBanner";
+import CategoryIcon from "../components/CategoryIcon";
 import Skeleton from "../components/Skeleton";
 import type { Category } from "../types";
 
@@ -163,7 +164,8 @@ const HomePage: React.FC = () => {
                 : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-100 dark:border-gray-700"
             }`}
           >
-            {cat.icon} {cat.name}
+            <CategoryIcon icon={cat.icon} className="text-base leading-none" />{" "}
+            {cat.name}
           </button>
         ))}
       </div>

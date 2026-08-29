@@ -2,6 +2,7 @@ import apiClient from "./apiClient";
 import type { Review } from "../types";
 
 interface ReviewCreatePayload {
+  name: string;
   productId: string;
   storeId: string;
   rating: number;
