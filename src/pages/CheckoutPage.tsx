@@ -69,6 +69,7 @@ const CheckoutPage: React.FC = () => {
       <div className="flex items-center gap-3">
         <button
           onClick={() => navigate(-1)}
+          aria-label="Kembali"
           className="p-2 bg-white dark:bg-gray-800 rounded-full shadow-sm border border-gray-100 dark:border-gray-700 text-gray-700 dark:text-gray-300"
         >
           <ChevronLeft size={20} />

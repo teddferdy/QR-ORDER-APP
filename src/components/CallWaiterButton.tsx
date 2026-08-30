@@ -25,11 +25,13 @@ const CallWaiterButton: React.FC<CallWaiterButtonProps> = ({ orderId: orderIdPro
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
   const [lastRequest, setLastRequest] = useState<string | null>(null);
+  const [requestError, setRequestError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {
     if (!selectedType) return;
     setSubmitting(true);
+    setRequestError(null);
     try {
       const urlStore = searchParams.get('store');
       const urlTable = searchParams.get('table');
@@ -57,8 +59,14 @@ const CallWaiterButton: React.FC<CallWaiterButtonProps> = ({ orderId: orderIdPro
       setNotes('');
       setShowMenu(false);
       setTimeout(() => setLastRequest(null), 3000);
-    } catch {
+    } catch (err) {
       setLastRequest(null);
+      setRequestError(
+        err instanceof Error
+          ? err.message
+          : 'Permintaan gagal dikirim. Coba lagi.',
+      );
+      setTimeout(() => setRequestError(null), 4000);
     } finally {
       setSubmitting(false);
     }
@@ -67,8 +75,13 @@ const CallWaiterButton: React.FC<CallWaiterButtonProps> = ({ orderId: orderIdPro
   return (
     <div className="space-y-3">
       {lastRequest && (
-        <div className="bg-green-500 text-white px-4 py-3 rounded-2xl shadow-lg flex items-center gap-2 text-sm font-bold animate-pulse">
+        <div className="bg-green-500 text-white px-4 py-3 rounded-2xl shadow-lg flex items-center gap-2 text-sm font-bold">
           <span>✅</span> Permintaan "{lastRequest}" terkirim!
+        </div>
+      )}
+      {requestError && (
+        <div className="bg-destructive/10 border border-destructive/25 px-4 py-3 rounded-2xl text-destructive text-sm font-medium">
+          {requestError}
         </div>
       )}
       <button

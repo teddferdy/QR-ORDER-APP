@@ -12,7 +12,6 @@ import WaiterPage from "./pages/WaiterPage";
 import OrderHistoryPage from "./pages/OrderHistoryPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import { useThemeStore } from "./store/useThemeStore";
-import "./index.css";
 
 const DetailProductRedirect: React.FC = () => {
   const { id } = useParams<{ id: string }>();

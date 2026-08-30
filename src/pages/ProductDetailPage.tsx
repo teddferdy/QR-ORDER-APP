@@ -48,6 +48,7 @@ const ProductDetailPage: React.FC = () => {
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState("");
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
   const [activeImage, setActiveImage] = useState(0);
   const carouselRef = useRef<HTMLDivElement>(null);
 
@@ -82,12 +83,26 @@ const ProductDetailPage: React.FC = () => {
   };
 
   useEffect(() => {
+    let cancelled = false;
     if (product && store) {
-      fetchProductReviews(product.id, store).then((result) => {
-        setReviews(result.reviews);
-        setAverageRating(result.averageRating);
-        setTotalReviews(result.totalReviews);
-      });
+      setReviewError(null);
+      fetchProductReviews(product.id, store)
+        .then((result) => {
+          if (cancelled) return;
+          setReviews(result.reviews);
+          setAverageRating(result.averageRating);
+          setTotalReviews(result.totalReviews);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setReviews([]);
+          setAverageRating(0);
+          setTotalReviews(0);
+          setReviewError("Gagal memuat ulasan. Coba lagi nanti.");
+        });
+      return () => {
+        cancelled = true;
+      };
     }
   }, [product, store]);
 
@@ -213,8 +228,12 @@ const ProductDetailPage: React.FC = () => {
       setReviewRating(0);
       setReviewComment("");
       setShowReviewForm(false);
-    } catch {
-      /* ignore */
+    } catch (err) {
+      setReviewError(
+        err instanceof Error
+          ? err.message
+          : "Gagal mengirim ulasan. Coba lagi.",
+      );
     } finally {
       setReviewSubmitting(false);
     }
@@ -418,6 +437,14 @@ const ProductDetailPage: React.FC = () => {
 
         <div className="h-px bg-gray-100 dark:bg-gray-700/60" />
 
+        {reviewError && (
+          <div className="bg-destructive/10 border border-destructive/20 rounded-2xl p-4">
+            <p className="text-destructive text-sm font-medium">
+              {reviewError}
+            </p>
+          </div>
+        )}
+
         {reviews.length > 0 ? (
           <>
             <div className="space-y-4">
@@ -476,7 +503,7 @@ const ProductDetailPage: React.FC = () => {
             </div>
           )}
           </>
-        ) : (
+        ) : reviewError ? null : (
           <div className="text-center py-6">
             <div className="w-12 h-12 mx-auto rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-2">
               <MessageSquare size={20} className="text-gray-300 dark:text-gray-600" />

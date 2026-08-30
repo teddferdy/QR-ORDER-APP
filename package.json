@@ -36,8 +36,7 @@
     "typescript-eslint": "^8.65.0",
     "vite": "^8.2.0"
   },
-  "description": "This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.",
-  "main": "eslint.config.js",
+  "description": "Bisa Makan — QR ordering app for restaurants",
   "keywords": [],
   "author": "",
   "license": "ISC"
