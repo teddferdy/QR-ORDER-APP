@@ -14,7 +14,7 @@ const STATUS_FILTERS: { id: string; label: string }[] = [
   { id: "rejected", label: "Ditolak" },
 ];
 
-const COMPLETED_STATUSES = new Set(["Sudah Diantar", "Dibatalkan", "Ditolak"]);
+const COMPLETED_STATUSES = new Set(["Sudah Diantar"]);
 
 const OrderHistoryPage: React.FC = () => {
   const [searchParams] = useSearchParams();

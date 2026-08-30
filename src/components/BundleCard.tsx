@@ -115,6 +115,7 @@ const BundleCard: React.FC<BundleCardProps> = ({ bundle }) => {
           {bundle.isAvailable ? (
             <button
               onClick={handleAddToCart}
+              aria-label="Tambahkan"
               className="bg-primary/10 text-primary p-2.5 rounded-full hover:bg-primary hover:text-white transition-all shadow-sm"
             >
               <Package size={18} strokeWidth={2.5} />

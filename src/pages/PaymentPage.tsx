@@ -67,7 +67,7 @@ const PaymentPage: React.FC = () => {
         customerName: customerName || undefined,
         paymentMethod: selectedMethod,
         session: searchParams.get("session") || undefined,
-        splitCount: (selectedMethod as string) === "split" ? splitCount : undefined,
+        splitCount: selectedMethod === "Split Bill" ? splitCount : undefined,
         items: items.map((item) => ({
           productId: Number(item.id),
           productName: item.name,
@@ -149,6 +149,7 @@ const PaymentPage: React.FC = () => {
       <div className="flex items-center gap-3">
         <button
           onClick={() => navigate(-1)}
+          aria-label="Kembali"
           className="p-2 bg-white dark:bg-gray-800 rounded-full shadow-sm border border-gray-100 dark:border-gray-700 text-gray-700 dark:text-gray-300"
         >
           <ChevronLeft size={20} />

@@ -155,7 +155,7 @@ const Layout: React.FC = () => {
           </Link>
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Link to={buildHref('/cart', searchParams)} className="relative p-2">
+            <Link to={buildHref('/cart', searchParams)} aria-label="Keranjang" className="relative p-2">
               <ShoppingBag size={22} className="text-gray-700 dark:text-gray-300" />
               {totalItems > 0 ? (
                 <span className="absolute top-0.5 right-0.5 bg-accent text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center shadow-sm">

@@ -37,19 +37,15 @@ export async function fetchProductReviews(
   productId: string,
   storeId: string,
 ): Promise<{ reviews: Review[]; averageRating: number; totalReviews: number }> {
-  try {
-    const { data } = await apiClient.get<ProductReviewsResponse>(
-      "/order/customer-reviews",
-      {
-        params: { productId, store: storeId },
-      },
-    );
-    return {
-      reviews: data.data.reviews || [],
-      averageRating: data.data.averageRating || 0,
-      totalReviews: data.data.totalReviews || 0,
-    };
-  } catch {
-    return { reviews: [], averageRating: 0, totalReviews: 0 };
-  }
+  const { data } = await apiClient.get<ProductReviewsResponse>(
+    "/order/customer-reviews",
+    {
+      params: { productId, store: storeId },
+    },
+  );
+  return {
+    reviews: data.data.reviews || [],
+    averageRating: data.data.averageRating || 0,
+    totalReviews: data.data.totalReviews || 0,
+  };
 }

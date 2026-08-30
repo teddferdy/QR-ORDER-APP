@@ -32,6 +32,9 @@ interface BackendProduct {
   conversionFactor: number;
   status: string;
   isAvailable: boolean;
+  isBestSeller?: boolean;
+  isPromo?: boolean;
+  isVegetarian?: boolean;
   point: number;
   redeemPoints: number;
   tax: { id: number; name: string; rate: number } | null;
@@ -183,9 +186,9 @@ export function mapBackendProductToFrontend(
     rating: bp.averageRating ?? 0,
     reviewsCount: bp.totalReviews ?? bp.reviews?.length ?? 0,
     reviews: bp.reviews?.map((r) => mapBackendReviewToFrontend(r, String(bp.id))),
-    isBestSeller: false,
-    isPromo: false,
-    isVegetarian: false,
+    isBestSeller: !!bp.isBestSeller,
+    isPromo: !!bp.isPromo,
+    isVegetarian: !!bp.isVegetarian,
     estimatedTime: bp.estimationTime || 15,
     stock: bp.isAvailable ? bp.stock : 0,
     storeId: storeId || String(bp.category),

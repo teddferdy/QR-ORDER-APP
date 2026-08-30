@@ -5,7 +5,6 @@ import { useBundles } from "../hooks/useBundles";
 import { usePromos } from "../hooks/usePromos";
 import { useStoreConfig } from "../hooks/useStoreConfig";
 import SearchBar from "../components/SearchBar";
-import FilterBar from "../components/FilterBar";
 import MenuCard from "../components/MenuCard";
 import BundleCard from "../components/BundleCard";
 import PromoBanner from "../components/PromoBanner";
@@ -13,14 +12,11 @@ import CategoryIcon from "../components/CategoryIcon";
 import Skeleton from "../components/Skeleton";
 import type { Category } from "../types";
 
-const filterOptions: { id: string; label: string; icon: string }[] = [];
-
 const HomePage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<Category | "All">(
     "All",
   );
-  const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [searchParams] = useSearchParams();
   const table = searchParams.get("table");
   const store = searchParams.get("store");
@@ -28,13 +24,7 @@ const HomePage: React.FC = () => {
   const { products, categories, loading, error } = useProducts(store);
   const { bundles } = useBundles(store);
   const { promos } = usePromos(store);
-  const { config } = useStoreConfig(store);
-
-  const toggleFilter = (id: string) => {
-    setActiveFilters((prev) =>
-      prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id],
-    );
-  };
+  const { config, error: storeConfigError } = useStoreConfig(store);
 
   const filteredProducts = products.filter((product) => {
     const matchesSearch =
@@ -42,19 +32,8 @@ const HomePage: React.FC = () => {
       product.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory =
       selectedCategory === "All" || product.category === selectedCategory;
-    const matchesBestSeller =
-      !activeFilters.includes("best-seller") || product.isBestSeller;
-    const matchesPromo = !activeFilters.includes("promo") || product.isPromo;
-    const matchesVegetarian =
-      !activeFilters.includes("vegetarian") || product.isVegetarian;
 
-    return (
-      matchesSearch &&
-      matchesCategory &&
-      matchesBestSeller &&
-      matchesPromo &&
-      matchesVegetarian
-    );
+    return matchesSearch && matchesCategory;
   });
 
   const filteredBundles = useMemo(() => {
@@ -133,15 +112,16 @@ const HomePage: React.FC = () => {
         </div>
       </header>
 
+      {storeConfigError && (
+        <div className="bg-destructive/10 text-destructive text-sm px-4 py-3 rounded-2xl font-medium flex items-start gap-2">
+          <span>⚠️</span>
+          <span>{storeConfigError}</span>
+        </div>
+      )}
+
       {promos.length > 0 && <PromoBanner promos={promos} />}
 
       <SearchBar value={searchQuery} onChange={setSearchQuery} />
-
-      <FilterBar
-        filters={filterOptions}
-        activeFilters={activeFilters}
-        onToggle={toggleFilter}
-      />
 
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
         <button

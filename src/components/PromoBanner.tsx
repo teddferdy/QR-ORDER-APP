@@ -29,10 +29,10 @@ function formatDiscountText(promo: PromoCampaign): string {
 
 const GRADIENTS = [
   "from-orange-500 via-rose-500 to-pink-600",
-  "from-emerald-500 via-teal-500 to-cyan-600",
-  "from-violet-500 via-purple-500 to-fuchsia-600",
+  "from-rose-500 via-red-500 to-orange-600",
+  "from-orange-400 via-amber-500 to-red-500",
   "from-amber-500 via-orange-500 to-red-500",
-  "from-blue-500 via-indigo-500 to-purple-600",
+  "from-amber-400 via-orange-500 to-rose-500",
 ];
 
 const PromoBanner: React.FC<PromoBannerProps> = ({ promos, className = "" }) => {
@@ -139,7 +139,7 @@ const PromoBanner: React.FC<PromoBannerProps> = ({ promos, className = "" }) => 
               e.stopPropagation();
               prev();
             }}
-            className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/40 transition-colors"
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/40 transition-colors"
             aria-label="Sebelumnya"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -151,8 +151,8 @@ const PromoBanner: React.FC<PromoBannerProps> = ({ promos, className = "" }) => 
               e.stopPropagation();
               next();
             }}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/40 transition-colors"
-            aria-label="Selanjutnya"
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/40 transition-colors"
+            aria-label="Berikutnya"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="9 18 15 12 9 6" />

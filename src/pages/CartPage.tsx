@@ -132,7 +132,8 @@ const CartPage: React.FC = () => {
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                aria-label="Kurangi jumlah"
+                className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
               >
                 −
               </button>
@@ -141,13 +142,15 @@ const CartPage: React.FC = () => {
               </span>
               <button
                 onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold hover:bg-primary hover:text-white transition-colors"
+                aria-label="Tambah jumlah"
+                className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold hover:bg-primary hover:text-white transition-colors"
               >
                 +
               </button>
               <button
                 onClick={() => removeItem(item.id)}
-                className="text-gray-300 dark:text-gray-600 ml-2 hover:text-red-500 transition-colors"
+                aria-label="Hapus item"
+                className="w-10 h-10 flex items-center justify-center rounded-full text-gray-300 dark:text-gray-600 ml-2 hover:text-red-500 transition-colors"
               >
                 <Trash2 size={16} />
               </button>
