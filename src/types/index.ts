@@ -89,6 +89,10 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
+  // Opaque per-order token required to look this order up via the
+  // unauthenticated tracking/receipt endpoints — never the raw id, which
+  // is guessable/enumerable across every store.
+  publicToken?: string;
   orderNumber?: string;
   tableNumber: string;
   storeId?: string;

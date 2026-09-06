@@ -7,22 +7,45 @@ interface OrderStatusTrackerProps {
   compact?: boolean;
 }
 
-const statusSteps: { id: OrderStatus; label: string; icon: React.FC<{size?: number}> }[] = [
+const standardSteps: { id: OrderStatus; label: string; icon: React.FC<{size?: number}> }[] = [
   { id: 'Menunggu Konfirmasi', label: 'Menunggu', icon: Clock },
   { id: 'Diproses', label: 'Diproses', icon: CheckCircle2 },
   { id: 'Sedang Dimasak', label: 'Dimasak', icon: ChefHat },
   { id: 'Siap Diantar', label: 'Siap', icon: Bike },
   { id: 'Sudah Diantar', label: 'Sampai', icon: MapPin },
-  { id: 'Ditolak', label: 'Ditolak', icon: XCircle },
-  { id: 'Dibatalkan', label: 'Dibatalkan', icon: Ban },
 ];
 
 const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({
   currentStatus,
   compact = false,
 }) => {
-  const currentIndex = statusSteps.findIndex((s) => s.id === currentStatus);
-  const isRejected = currentStatus === 'Ditolak' || currentStatus === 'Dibatalkan';
+  const isRejected = currentStatus === 'Ditolak';
+  const isCancelled = currentStatus === 'Dibatalkan';
+  const isTerminalNegative = isRejected || isCancelled;
+
+  if (isTerminalNegative) {
+    const NegativeIcon = isRejected ? XCircle : Ban;
+    const label = isRejected ? 'Pesanan Ditolak' : 'Pesanan Dibatalkan';
+    const subtext = isRejected
+      ? 'Pesanan ini tidak dapat diproses oleh restoran.'
+      : 'Pesanan ini telah dibatalkan.';
+
+    return (
+      <div
+        className={`${compact ? 'py-4 px-5' : 'p-6'} bg-red-50/70 dark:bg-red-950/20 rounded-3xl border border-red-200 dark:border-red-900/40 text-center space-y-2`}
+      >
+        <div className="inline-flex p-3 rounded-full bg-destructive text-white shadow-md shadow-destructive/20">
+          <NegativeIcon size={compact ? 22 : 28} />
+        </div>
+        <div>
+          <h4 className="font-bold text-sm text-destructive">{label}</h4>
+          <p className="text-xs text-red-600/80 dark:text-red-400/80 mt-0.5">{subtext}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const currentIndex = standardSteps.findIndex((s) => s.id === currentStatus);
 
   return (
     <div
@@ -30,9 +53,9 @@ const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({
     >
       <div className="relative flex justify-between">
         <div className="absolute top-5 left-0 w-full h-0.5 bg-gray-200 dark:bg-gray-700 -z-0" />
-        {statusSteps.map((step, index) => {
+        {standardSteps.map((step, index) => {
           const Icon = step.icon;
-          const isCompleted = index <= currentIndex;
+          const isCompleted = currentIndex >= 0 && index <= currentIndex;
           const isCurrent = index === currentIndex;
           return (
             <div
@@ -41,21 +64,17 @@ const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({
             >
               <div
                 className={`p-3 rounded-full transition-all ${
-                  isRejected && isCurrent
-                    ? 'bg-destructive text-white shadow-md shadow-destructive/30'
-                    : isCompleted
-                      ? 'bg-primary text-white shadow-md shadow-primary/30'
-                      : 'bg-white dark:bg-gray-800 text-gray-400 dark:text-gray-600 border border-gray-200 dark:border-gray-700'
+                  isCompleted
+                    ? 'bg-primary text-white shadow-md shadow-primary/30'
+                    : 'bg-white dark:bg-gray-800 text-gray-400 dark:text-gray-600 border border-gray-200 dark:border-gray-700'
                 }`}
               >
                 <Icon size={compact ? 16 : 20} />
               </div>
               <span
                 className={`text-[10px] font-bold text-center ${
-                  isCompleted || (isRejected && isCurrent)
-                    ? isRejected && isCurrent
-                      ? 'text-destructive'
-                      : 'text-primary'
+                  isCompleted || isCurrent
+                    ? 'text-primary'
                     : 'text-gray-400 dark:text-gray-600'
                 }`}
               >
