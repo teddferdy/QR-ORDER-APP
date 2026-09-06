@@ -8,6 +8,7 @@ interface CustomerCreateResponse {
 
 interface BackendOrder {
   id: number;
+  publicToken?: string;
   orderNumber: string;
   store: number;
   tableId: number | null;
@@ -165,6 +166,7 @@ function mapModifiersToFrontend(
 function mapBackendOrderToFrontend(bo: BackendOrder): Order {
   return {
     id: String(bo.id),
+    publicToken: bo.publicToken,
     orderNumber: bo.orderNumber,
     tableNumber: bo.table?.name || String(bo.tableId || ""),
     storeId: String(bo.store),
@@ -230,11 +232,11 @@ export async function createCustomerOrder(
 }
 
 export async function fetchCustomerOrder(
-  orderId: string,
+  publicToken: string,
 ): Promise<Order | null> {
   try {
     const { data } = await apiClient.get<CustomerOrderResponse>(
-      `/order/customer-order/${orderId}`,
+      `/order/customer-order/${publicToken}`,
     );
     const d = data.data;
     return {

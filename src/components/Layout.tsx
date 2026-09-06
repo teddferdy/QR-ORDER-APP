@@ -105,7 +105,10 @@ const Layout: React.FC = () => {
 
   const table = searchParams.get('table');
   const store = searchParams.get('store');
-  const orderId = searchParams.get('orderId');
+  // Opaque per-order token (not the raw database id) — the backend now
+  // requires it for this unauthenticated lookup so a shared/bookmarked
+  // link can't be used to enumerate other stores' orders.
+  const orderToken = searchParams.get('orderToken');
   const hasRequiredParams = Boolean(table && store);
 
   useEffect(() => {
@@ -114,10 +117,10 @@ const Layout: React.FC = () => {
   }, [table, store, setTableNumber, setStoreId]);
 
   useEffect(() => {
-    if (!orderId || !store) return;
+    if (!orderToken || !store) return;
     const fetchOrder = async () => {
       try {
-        const order = await fetchCustomerOrder(orderId);
+        const order = await fetchCustomerOrder(orderToken);
         if (order) {
           setActiveOrder(order.id);
         }
@@ -126,7 +129,7 @@ const Layout: React.FC = () => {
       }
     };
     fetchOrder();
-  }, [orderId, store, setActiveOrder]);
+  }, [orderToken, store, setActiveOrder]);
 
   if (!hasRequiredParams) {
     return <MissingParamsPage />;

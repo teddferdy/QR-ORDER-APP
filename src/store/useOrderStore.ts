@@ -74,11 +74,16 @@ export const useOrderStore = create<OrderState>()(
       },
 
       refreshOrder: async (orderId) => {
-        const order = await fetchCustomerOrder(orderId);
+        // The tracking endpoint is keyed by the order's opaque publicToken,
+        // not its numeric id, so resolve the token from what's already in
+        // the store (set at creation time) before fetching.
+        const existing = get().orders.find((o) => o.id === orderId);
+        if (!existing?.publicToken) return;
+        const order = await fetchCustomerOrder(existing.publicToken);
         if (order) {
           set({
             orders: get().orders.map((o) =>
-              o.id === orderId ? { ...o, ...order } : o,
+              o.id === orderId ? { ...o, ...order, publicToken: o.publicToken } : o,
             ),
           });
         }
