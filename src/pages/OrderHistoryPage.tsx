@@ -23,6 +23,7 @@ const OrderHistoryPage: React.FC = () => {
   const navigate = useNavigate();
   const addItem = useCartStore((state) => state.addItem);
   const store = searchParams.get("store");
+  const table = searchParams.get("table") || undefined;
   const session = searchParams.get("session") || undefined;
 
   const [orders, setOrders] = useState<Order[]>([]);
@@ -46,6 +47,7 @@ const OrderHistoryPage: React.FC = () => {
       const result = await fetchCustomerOrders(store, {
         page,
         limit,
+        tableId: table,
         session,
       });
       let filtered = result.orders;
@@ -67,7 +69,7 @@ const OrderHistoryPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [store, session, page, limit, statusFilter]);
+  }, [store, table, session, page, limit, statusFilter]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
