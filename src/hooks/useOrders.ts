@@ -29,12 +29,35 @@ export function useOrders(
   const prevStatusesRef = useRef<Map<string, string>>(new Map());
   const pollIntervalRef = useRef<number>(BASE_POLL_INTERVAL);
   const retryCountRef = useRef<number>(0);
-  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const optionsRef = useRef(options);
   useEffect(() => {
     optionsRef.current = options;
   });
+
+  // Self-scheduling: reads pollIntervalRef.current fresh every time it
+  // fires, instead of a setInterval whose delay is fixed at creation time —
+  // that fixed-delay approach is what previously defeated the backoff
+  // below (the computed interval was updated but the already-running timer
+  // never picked up the new value, so polling stayed at a flat 10s
+  // cadence). Skips scheduling entirely while the tab is hidden; the
+  // visibility handler resumes polling (and, via the fetch it triggers,
+  // scheduling) when the tab becomes visible again.
+  const clearScheduledPoll = useCallback(() => {
+    if (pollTimerRef.current) {
+      clearTimeout(pollTimerRef.current);
+      pollTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleNextPoll = useCallback(() => {
+    clearScheduledPoll();
+    if (document.hidden) return;
+    pollTimerRef.current = setTimeout(() => {
+      setTrigger((t) => t + 1);
+    }, pollIntervalRef.current);
+  }, [clearScheduledPoll]);
 
   useEffect(() => {
     let cancelled = false;
@@ -88,6 +111,7 @@ export function useOrders(
             MAX_POLL_INTERVAL,
           );
         }
+        scheduleNextPoll();
       } catch (err) {
         if (cancelled) return;
         const msg = err instanceof Error ? err.message : "Gagal memuat pesanan";
@@ -106,29 +130,24 @@ export function useOrders(
     return () => {
       cancelled = true;
     };
-  }, [storeId, options?.tableId, options?.session, options?.page, options?.limit, trigger]);
+  }, [
+    storeId,
+    options?.tableId,
+    options?.session,
+    options?.page,
+    options?.limit,
+    trigger,
+    scheduleNextPoll,
+  ]);
 
   useEffect(() => {
     if (!storeId) return;
 
-    const poll = () => {
-      setTrigger((t) => t + 1);
-    };
-
-    pollTimerRef.current = setInterval(poll, pollIntervalRef.current);
-
     const handleVisibility = () => {
       if (!document.hidden) {
-        poll();
-        if (pollTimerRef.current) {
-          clearInterval(pollTimerRef.current);
-        }
-        pollTimerRef.current = setInterval(poll, pollIntervalRef.current);
+        setTrigger((t) => t + 1);
       } else {
-        if (pollTimerRef.current) {
-          clearInterval(pollTimerRef.current);
-          pollTimerRef.current = null;
-        }
+        clearScheduledPoll();
       }
     };
 
@@ -136,12 +155,9 @@ export function useOrders(
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibility);
-      if (pollTimerRef.current) {
-        clearInterval(pollTimerRef.current);
-        pollTimerRef.current = null;
-      }
+      clearScheduledPoll();
     };
-  }, [storeId]);
+  }, [storeId, clearScheduledPoll]);
 
   const refetch = useCallback(() => { setTrigger((t) => t + 1); }, []);
 

@@ -4,6 +4,8 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import OrderStatusTracker from "../components/OrderStatusTracker";
 import { ListOrdered, RefreshCw } from "lucide-react";
 import Skeleton from "../components/Skeleton";
+import BundleBadge from "../components/BundleBadge";
+import { bareTableDesignator } from "../utils/tableDisplay";
 
 function statusBadgeClass(status: string) {
   if (status === "Ditolak" || status === "Dibatalkan")
@@ -62,6 +64,14 @@ const OrdersPage: React.FC = () => {
     ? orders.filter((o) => ACTIVE_STATUSES.has(o.status))
     : orders;
 
+  // A real order for this table already carries the backend's actual
+  // table.name (see orderService.ts) — prefer that friendly name over the
+  // raw QR table id used for authority/API calls, falling back to the raw
+  // id only when no order has loaded yet to source a friendly name from.
+  // This does NOT change what tableId is used for (table stays the URL
+  // authority for polling/API params above) — display only.
+  const displayTable = bareTableDesignator(orders[0]?.tableNumber) ?? table;
+
   if (loading) {
     return (
       <div className="space-y-6 pb-20">
@@ -111,7 +121,7 @@ const OrdersPage: React.FC = () => {
           <ListOrdered size={36} className="text-gray-400 dark:text-gray-500" />
         </div>
         <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-          Meja {table}
+          Meja {displayTable}
         </h2>
         <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
           Tidak ada pesanan aktif untuk meja ini.
@@ -152,7 +162,7 @@ const OrdersPage: React.FC = () => {
     <div className="space-y-6 pb-20">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-          {table ? `Meja ${table}` : "Status Pesanan"}
+          {table ? `Meja ${displayTable}` : "Status Pesanan"}
         </h2>
         <button
           onClick={() => refetch()}
@@ -175,7 +185,7 @@ const OrdersPage: React.FC = () => {
                   {(order.orderNumber || order.id).slice(0, 10).toUpperCase()}
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  Meja {order.tableNumber}
+                  Meja {bareTableDesignator(order.tableNumber) ?? order.tableNumber}
                   {order.customerName && ` • ${order.customerName}`}
                 </p>
               </div>
@@ -199,11 +209,12 @@ const OrdersPage: React.FC = () => {
 
               <div className="space-y-2">
                 {order.items.map((item, idx) => (
-                  <div key={idx} className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      {item.name} x{item.quantity}
+                  <div key={idx} className="flex justify-between text-sm gap-2">
+                    <span className="text-gray-600 dark:text-gray-400 flex items-center gap-1.5 min-w-0 truncate">
+                      {item.bundleName || item.name} x{item.quantity}
+                      {item.bundleId && <BundleBadge />}
                     </span>
-                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                    <span className="font-medium text-gray-900 dark:text-gray-100 shrink-0">
                       Rp{item.totalPrice.toLocaleString()}
                     </span>
                   </div>

@@ -2,10 +2,12 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useCartStore } from "../store/useCartStore";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { RotateCcw, History, ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
-import type { Order } from "../types";
+import type { Order, Product } from "../types";
 import { fetchCustomerOrders } from "../services/orderService";
-import { fetchProductById } from "../services/productService";
+import { fetchProductById, fetchBundles } from "../services/productService";
 import Skeleton from "../components/Skeleton";
+import BundleBadge from "../components/BundleBadge";
+import { bundleToCartProduct } from "../utils/bundleToProduct";
 
 const STATUS_FILTERS: { id: string; label: string }[] = [
   { id: "all", label: "Semua" },
@@ -79,51 +81,78 @@ const OrderHistoryPage: React.FC = () => {
     setReorderLoading(true);
     setReorderError(null);
     const unavailableItems: string[] = [];
-    const availableItems = [];
+    const entries: {
+      product: Product;
+      customization?: Order["items"][number]["customization"];
+      quantity: number;
+    }[] = [];
+
+    // Only fetched when needed — getCustomerOrders now returns bundleId per
+    // item (BE-POS-App order.js), so a bundle line is identified by that,
+    // never guessed from productName.
+    const bundles = order.items.some((item) => item.bundleId)
+      ? await fetchBundles(store || undefined).catch(() => [])
+      : [];
 
     for (const item of order.items) {
+      if (item.bundleId) {
+        const bundle = bundles.find((b) => b.id === item.bundleId);
+        if (!bundle) {
+          unavailableItems.push(item.bundleName || item.name);
+          continue;
+        }
+        entries.push({ product: bundleToCartProduct(bundle), quantity: item.quantity });
+        continue;
+      }
+
       try {
         const product = await fetchProductById(item.productId, store || undefined);
         if (product && product.stock > 0) {
-          availableItems.push({
-            ...item,
-            productId: product.id,
-            image: product.image,
-          });
+          entries.push({ product, customization: item.customization, quantity: item.quantity });
         } else {
           unavailableItems.push(item.name);
         }
       } catch {
-        availableItems.push(item);
+        // Availability couldn't be verified (network error) — keep the
+        // historical item rather than stranding the whole reorder, same as
+        // previous behavior.
+        entries.push({
+          product: {
+            id: item.productId || `reorder-${order.id}-${item.name}`,
+            name: item.name,
+            description: "",
+            price: item.price,
+            image: item.image || "",
+            images: item.image ? [item.image] : [],
+            category: "Makanan" as const,
+            rating: 0,
+            reviewsCount: 0,
+            isBestSeller: false,
+            isPromo: false,
+            isVegetarian: false,
+            estimatedTime: 15,
+            stock: 99,
+            storeId: order.storeId || "",
+            ingredients: [],
+          },
+          customization: item.customization,
+          quantity: item.quantity,
+        });
       }
     }
 
-    if (availableItems.length === 0) {
+    if (entries.length === 0) {
       setReorderError("Semua item dalam pesanan ini tidak tersedia lagi.");
       setReorderLoading(false);
       return;
     }
 
-    for (const item of availableItems) {
-      const product = {
-        id: item.productId || `reorder-${order.id}-${item.name}`,
-        name: item.name,
-        description: "",
-        price: item.price,
-        image: item.image || "",
-        images: item.image ? [item.image] : [],
-        category: "Makanan" as const,
-        rating: 0,
-        reviewsCount: 0,
-        isBestSeller: false,
-        isPromo: false,
-        isVegetarian: false,
-        estimatedTime: 15,
-        stock: 99,
-        storeId: order.storeId || "",
-        ingredients: [],
-      };
-      addItem(product, item.customization);
+    for (const entry of entries) {
+      // addItem always adds one unit — repeat per original quantity so a
+      // reorder doesn't silently drop back to qty 1 for every line.
+      for (let i = 0; i < entry.quantity; i++) {
+        addItem(entry.product, entry.customization);
+      }
     }
 
     setReorderLoading(false);
@@ -235,11 +264,12 @@ const OrderHistoryPage: React.FC = () => {
 
                 <div className="p-5 space-y-2">
                   {order.items.map((item, idx) => (
-                    <div key={idx} className="flex justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">
-                        {item.name} x{item.quantity}
+                    <div key={idx} className="flex justify-between text-sm gap-2">
+                      <span className="text-gray-600 dark:text-gray-400 flex items-center gap-1.5 min-w-0 truncate">
+                        {item.bundleName || item.name} x{item.quantity}
+                        {item.bundleId && <BundleBadge />}
                       </span>
-                      <span className="font-medium text-gray-900 dark:text-gray-100">
+                      <span className="font-medium text-gray-900 dark:text-gray-100 shrink-0">
                         Rp{item.totalPrice.toLocaleString()}
                       </span>
                     </div>

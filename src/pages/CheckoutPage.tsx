@@ -2,24 +2,27 @@ import React, { useState } from "react";
 import { useCartStore } from "../store/useCartStore";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import CartSummary from "../components/CartSummary";
+import BundleBadge from "../components/BundleBadge";
 import { ChevronLeft, ShoppingCart } from "lucide-react";
-import { useSettingsStore } from "../store/useSettingsStore";
 import { useCheckoutStore } from "../store/useCheckoutStore";
+import { useStoreConfig } from "../hooks/useStoreConfig";
 
 const CheckoutPage: React.FC = () => {
   const { items, subtotal } = useCartStore();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { settings } = useSettingsStore();
   const { setCheckoutData } = useCheckoutStore();
+  const { config } = useStoreConfig(searchParams.get("store"));
 
   const href = (path: string) => {
     const sep = path.includes("?") ? "&" : "?";
     return `${path}${sep}table=${searchParams.get("table") || ""}&store=${searchParams.get("store") || ""}&session=${searchParams.get("session") || ""}`;
   };
-  const [tableNumber, setTableNumber] = useState(settings.tableNumber || "");
+  // Table identity must come from the QR-derived URL context, not a
+  // customer-editable field — see Layout.tsx, which already refuses to
+  // render this page at all unless `table` is present in the URL.
+  const tableNumber = searchParams.get("table") || "";
   const [customerName, setCustomerName] = useState("");
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
   if (items.length === 0) {
     return (
@@ -43,21 +46,10 @@ const CheckoutPage: React.FC = () => {
     );
   }
 
-  const validate = () => {
-    const errs: Record<string, string> = {};
-    if (!tableNumber.trim()) errs.tableNumber = "Nomor meja wajib diisi";
-    if (tableNumber.trim() && !/^\d+$/.test(tableNumber.trim()))
-      errs.tableNumber = "Nomor meja harus berupa angka";
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
-  };
-
   const handleSubmit = () => {
-    if (!validate()) return;
     const checkoutData = {
-      tableNumber: tableNumber.trim(),
+      tableNumber,
       customerName: customerName.trim() || undefined,
-      storeId: settings.storeId,
       subtotal: subtotal(),
     };
     setCheckoutData(checkoutData);
@@ -65,7 +57,7 @@ const CheckoutPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-6 pb-40 md:pb-20">
       <div className="flex items-center gap-3">
         <button
           onClick={() => navigate(-1)}
@@ -80,29 +72,28 @@ const CheckoutPage: React.FC = () => {
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 space-y-5 border border-gray-50 dark:border-gray-700/50 shadow-sm">
-        <h3 className="font-bold text-gray-900 dark:text-gray-100">
-          Informasi Meja
-        </h3>
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-            Nomor Meja <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            value={tableNumber}
-            onChange={(e) => setTableNumber(e.target.value)}
-            placeholder="Contoh: 5"
-            className={`w-full p-3.5 border-2 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 transition-colors ${
-              errors.tableNumber
-                ? "border-red-300 dark:border-red-500"
-                : "border-gray-200 dark:border-gray-600 focus:border-primary"
-            }`}
-          />
-          {errors.tableNumber && (
-            <p className="text-red-500 text-xs mt-1.5 font-medium">
-              {errors.tableNumber}
+          <h3 className="font-bold text-gray-900 dark:text-gray-100">
+            Informasi Meja
+          </h3>
+          {config.storeName && (
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+              {config.storeName}
             </p>
           )}
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+            Nomor Meja
+          </label>
+          <div className="flex items-center gap-2">
+            <span className="bg-primary/10 text-primary px-4 py-2.5 rounded-2xl text-sm font-bold">
+              Meja {tableNumber || "-"}
+            </span>
+            <span className="text-xs text-gray-400 dark:text-gray-500">
+              Sesuai QR yang kamu scan
+            </span>
+          </div>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
@@ -126,23 +117,31 @@ const CheckoutPage: React.FC = () => {
 
       <div className="bg-white dark:bg-gray-800 rounded-3xl p-4 space-y-2 border border-gray-50 dark:border-gray-700/50 shadow-sm">
         {items.map((item) => (
-          <div key={item.id} className="flex justify-between text-sm">
-            <span className="text-gray-600 dark:text-gray-400">
+          <div key={item.id} className="flex justify-between text-sm gap-2">
+            <span className="text-gray-600 dark:text-gray-400 flex items-center gap-1.5 min-w-0 truncate">
               {item.name} x{item.quantity}
+              {item.bundleId && <BundleBadge />}
             </span>
-            <span className="font-medium text-gray-900 dark:text-gray-100">
+            <span className="font-medium text-gray-900 dark:text-gray-100 shrink-0">
               Rp{item.totalPrice.toLocaleString()}
             </span>
           </div>
         ))}
       </div>
 
-      <button
-        onClick={handleSubmit}
-        className="w-full bg-primary text-white py-4 rounded-2xl font-bold tap-scale shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-shadow"
-      >
-        Lanjut ke Pembayaran
-      </button>
+      {/* Fixed on mobile so the primary action stays reachable without
+          scrolling past the item list; bottom-[64px] clears the fixed
+          mobile bottom nav (Layout.tsx), which sits below it. Reverts to a
+          normal in-flow button on desktop (md:), where there is no bottom
+          nav. */}
+      <div className="fixed inset-x-0 bottom-[64px] z-40 bg-secondary/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-100 dark:border-gray-700/50 px-4 py-3 md:static md:inset-auto md:z-auto md:bg-transparent md:dark:bg-transparent md:backdrop-blur-none md:border-0 md:px-0 md:py-0">
+        <button
+          onClick={handleSubmit}
+          className="w-full bg-primary text-white py-4 rounded-2xl font-bold tap-scale shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-shadow"
+        >
+          Lanjut ke Pembayaran
+        </button>
+      </div>
     </div>
   );
 };

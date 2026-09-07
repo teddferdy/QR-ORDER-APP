@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useCartStore } from "../store/useCartStore";
 import { Package, X, Plus } from "lucide-react";
 import type { Bundle } from "../types";
+import { bundleToCartProduct } from "../utils/bundleToProduct";
+import { useDialogA11y } from "../hooks/useDialogA11y";
 
 interface BundleCardProps {
   bundle: Bundle;
@@ -12,6 +14,9 @@ interface BundleCardProps {
 const BundleCard: React.FC<BundleCardProps> = ({ bundle }) => {
   const [detailOpen, setDetailOpen] = useState(false);
   const addItem = useCartStore((state) => state.addItem);
+  const titleId = React.useId();
+  const closeDetail = () => setDetailOpen(false);
+  const panelRef = useDialogA11y<HTMLDivElement>(detailOpen, closeDetail);
 
   const firstItemImage =
     bundle.image ||
@@ -20,26 +25,7 @@ const BundleCard: React.FC<BundleCardProps> = ({ bundle }) => {
 
   const handleAddToCart = (e?: React.MouseEvent) => {
     e?.stopPropagation();
-    bundle.items.forEach((item) => {
-      addItem({
-        id: `bundle-${bundle.id}-${item.productId}`,
-        name: `${bundle.name} - ${item.productName}`,
-        description: bundle.description || "",
-        price: item.unitPrice,
-        image: item.productImage || firstItemImage,
-        images: [item.productImage || firstItemImage],
-        category: "Special" as const,
-        rating: 0,
-        reviewsCount: 0,
-        isBestSeller: false,
-        isPromo: false,
-        isVegetarian: false,
-        estimatedTime: 0,
-        stock: item.quantity || 999,
-        storeId: "",
-        ingredients: [],
-      });
-    });
+    addItem(bundleToCartProduct(bundle));
     setDetailOpen(false);
   };
 
@@ -146,7 +132,12 @@ const BundleCard: React.FC<BundleCardProps> = ({ bundle }) => {
                   exit={{ opacity: 0, y: 40 }}
                   transition={{ type: "spring", damping: 26, stiffness: 300 }}
                   onClick={(e) => e.stopPropagation()}
-                  className="w-full max-w-lg max-h-[92vh] overflow-y-auto bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-3xl shadow-2xl"
+                  ref={panelRef}
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby={titleId}
+                  tabIndex={-1}
+                  className="w-full max-w-lg max-h-[92vh] overflow-y-auto bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-3xl shadow-2xl outline-none"
                 >
                   <div className="relative">
                     <img
@@ -170,7 +161,10 @@ const BundleCard: React.FC<BundleCardProps> = ({ bundle }) => {
 
                   <div className="p-5 space-y-4">
                     <div>
-                      <h2 className="text-2xl font-display font-bold text-gray-900 dark:text-gray-100">
+                      <h2
+                        id={titleId}
+                        className="text-2xl font-display font-bold text-gray-900 dark:text-gray-100"
+                      >
                         {bundle.name}
                       </h2>
                       {bundle.description && (

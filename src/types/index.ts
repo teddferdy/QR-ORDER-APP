@@ -34,6 +34,23 @@ export interface AddOn {
   price: number;
 }
 
+export interface ProductOptionChoice {
+  name: string;
+  price: number;
+}
+
+// The real BE-POS-App product-options contract: a named group (e.g.
+// "Ukuran") containing its own independent choices (e.g. Reguler/Large),
+// each with its own price delta. A product can have several such groups,
+// each requiring its own selection — this is distinct from the flat
+// `sizes`/`Size` field below, which only ever matches a single-choice,
+// ungrouped shape that real seeded products don't actually use.
+export interface ProductOptionGroup {
+  id: string;
+  name: string;
+  choices: ProductOptionChoice[];
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -54,13 +71,29 @@ export interface Product {
   sizes?: Size[];
   spicinessLevels?: Spiciness[];
   addOns?: AddOn[];
+  // Grouped option choices as BE-POS-App actually returns them (see
+  // ProductOptionGroup) — populated alongside `sizes` rather than
+  // replacing it, since `sizes` is left in place for whatever legacy flat
+  // shape it was originally written for.
+  optionGroups?: ProductOptionGroup[];
   ingredients: string[];
+  // Set only when this "product" is a synthetic cart entry representing a
+  // whole bundle purchase — carries the real product-bundle id through to
+  // order creation instead of a per-component productId.
+  bundleId?: string;
+  // Component breakdown for a bundle entry (name/quantity only, for display)
+  // — captured from the bundle data already on hand at add-to-cart time.
+  bundleItems?: { name: string; quantity: number }[];
 }
 
 export interface CartItemCustomization {
   size?: Size;
   spiciness?: Spiciness;
   addOns?: AddOn[];
+  // One chosen choice per selected ProductOptionGroup (a product can have
+  // several independent groups, e.g. "Ukuran" AND "Piring" — this can carry
+  // more than one entry, unlike the single-value `size` field above).
+  selectedOptions?: { groupId: string; groupName: string; choiceName: string; price: number }[];
   notes?: string;
 }
 
@@ -75,6 +108,11 @@ export interface CartItem {
   quantity: number;
   customization?: CartItemCustomization;
   totalPrice: number;
+  // Present when this cart line is a bundle purchase — the real
+  // product-bundle id, forwarded to order creation as `bundleId` instead of
+  // a per-component `productId`.
+  bundleId?: string;
+  bundleItems?: { name: string; quantity: number }[];
 }
 
 export interface OrderItem {
@@ -85,6 +123,11 @@ export interface OrderItem {
   customization?: CartItemCustomization;
   totalPrice: number;
   image: string;
+  // Present when this historical order line was a bundle purchase — lets
+  // OrderHistoryPage identify and correctly reorder it via `bundleId`
+  // instead of misreading it as a single component product.
+  bundleId?: string;
+  bundleName?: string;
 }
 
 export interface Order {

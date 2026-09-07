@@ -122,14 +122,18 @@ const Layout: React.FC = () => {
       try {
         const order = await fetchCustomerOrder(orderToken);
         if (order) {
-          setActiveOrder(order.id);
+          // Activate this order for the CURRENT QR context (not whatever
+          // the tracking response itself reports, which the backend doesn't
+          // even populate for this endpoint) — consistent with the
+          // URL-is-authoritative rule used for order submission.
+          setActiveOrder(order.id, { storeId: store, tableId: table });
         }
       } catch {
         // ignore
       }
     };
     fetchOrder();
-  }, [orderToken, store, setActiveOrder]);
+  }, [orderToken, store, table, setActiveOrder]);
 
   if (!hasRequiredParams) {
     return <MissingParamsPage />;
