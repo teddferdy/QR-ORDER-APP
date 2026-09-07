@@ -28,7 +28,9 @@ function calcUnitPrice(
 ): number {
   const addOnTotal =
     customization?.addOns?.reduce((sum, a) => sum + a.price, 0) || 0;
-  return basePrice + addOnTotal;
+  const optionGroupsTotal =
+    customization?.selectedOptions?.reduce((sum, o) => sum + o.price, 0) || 0;
+  return basePrice + addOnTotal + optionGroupsTotal;
 }
 
 export const useCartStore = create<CartState>()(
@@ -49,8 +51,10 @@ export const useCartStore = create<CartState>()(
 
         const addOnTotal =
           customization?.addOns?.reduce((sum, a) => sum + a.price, 0) || 0;
+        const optionGroupsTotal =
+          customization?.selectedOptions?.reduce((sum, o) => sum + o.price, 0) || 0;
         const basePrice = product.price;
-        const unitPrice = basePrice + addOnTotal;
+        const unitPrice = basePrice + addOnTotal + optionGroupsTotal;
 
         if (existingItem) {
           const newQty = existingItem.quantity + 1;
@@ -80,6 +84,8 @@ export const useCartStore = create<CartState>()(
                 quantity: 1,
                 customization,
                 totalPrice: unitPrice,
+                bundleId: product.bundleId,
+                bundleItems: product.bundleItems,
               },
             ],
           });

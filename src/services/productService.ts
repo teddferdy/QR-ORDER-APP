@@ -1,5 +1,5 @@
 import apiClient from "./apiClient";
-import type { Product, Category, AddOn, Review, Bundle, PromoCampaign } from "../types";
+import type { Product, Category, AddOn, Review, Bundle, PromoCampaign, ProductOptionGroup } from "../types";
 
 interface CustomerMenuResponse {
   message: string;
@@ -124,6 +124,40 @@ function mapBackendOptionsToFrontend(options: unknown[]): string[] {
     .map((opt) => opt.value || opt.name);
 }
 
+// The shape BE-POS-App actually returns for product.options: a group
+// ({id, name, options: [...]}) whose own `options` array holds the real
+// choices ({name, price, stock}). This does not overlap with
+// mapBackendOptionsToFrontend above (a flat {name, value} shape that never
+// occurs in the real seeded data) — that function already safely returns []
+// for this input since none of its entries have a `value` key, so both can
+// coexist without conflict. Malformed groups/choices (missing a name) are
+// skipped rather than accepted as-is.
+function mapBackendOptionGroupsToFrontend(options: unknown[]): ProductOptionGroup[] {
+  if (!Array.isArray(options)) return [];
+  const groups: ProductOptionGroup[] = [];
+  options.forEach((entry, groupIdx) => {
+    if (typeof entry !== "object" || entry === null) return;
+    const group = entry as { id?: string | number; name?: string; options?: unknown };
+    if (!group.name || !Array.isArray(group.options)) return;
+    const choices = group.options
+      .filter(
+        (choice): choice is { name: string; price?: number } =>
+          typeof choice === "object" && choice !== null && "name" in choice && !!choice.name,
+      )
+      .map((choice) => ({
+        name: choice.name,
+        price: Number(choice.price) || 0,
+      }));
+    if (choices.length === 0) return;
+    groups.push({
+      id: String(group.id ?? groupIdx),
+      name: group.name,
+      choices,
+    });
+  });
+  return groups;
+}
+
 function mapBackendModifiersToFrontend(modifiers: unknown[]): AddOn[] {
   if (!Array.isArray(modifiers)) return [];
   return modifiers
@@ -159,6 +193,7 @@ export function mapBackendProductToFrontend(
   storeId?: string,
 ): Product {
   const sizes = mapBackendOptionsToFrontend(bp.options);
+  const optionGroups = mapBackendOptionGroupsToFrontend(bp.options);
   const addOns = mapBackendModifiersToFrontend(bp.modifiers);
   const ingredients = Array.isArray(bp.composition)
     ? bp.composition
@@ -195,6 +230,7 @@ export function mapBackendProductToFrontend(
     sizes: sizes.length > 0 ? (sizes as Product["sizes"]) : undefined,
     spicinessLevels: undefined,
     addOns: addOns.length > 0 ? addOns : undefined,
+    optionGroups: optionGroups.length > 0 ? optionGroups : undefined,
     ingredients,
   };
 }
@@ -205,10 +241,26 @@ export interface MenuCategoryUI {
   icon: string;
 }
 
-export async function fetchCustomerMenu(storeId: string): Promise<{
+interface CustomerMenuResult {
   products: Product[];
   categories: MenuCategoryUI[];
-}> {
+}
+
+// In-memory only (module-scoped, lost on reload), keyed by storeId — same
+// proven pattern as storeService.ts's store-config cache: holds the raw
+// (throwing) request promise, shared across every caller for that storeId,
+// and a failed request is evicted immediately (see the .catch below)
+// rather than cached, so a later call always retries fresh instead of
+// reusing a broken result. This is the single shared source for the
+// customer menu — fetchProductById below reuses it instead of issuing its
+// own independent full-menu request, so a product detail page opened
+// after the menu was already fetched (e.g. from Home) costs zero
+// additional network requests.
+const customerMenuCache = new Map<string, Promise<CustomerMenuResult>>();
+
+async function fetchCustomerMenuFromApi(
+  storeId: string,
+): Promise<CustomerMenuResult> {
   const { data } = await apiClient.get<CustomerMenuResponse>(
     "/order/customer-menu",
     {
@@ -247,23 +299,32 @@ export async function fetchCustomerMenu(storeId: string): Promise<{
   };
 }
 
+export async function fetchCustomerMenu(
+  storeId: string,
+): Promise<CustomerMenuResult> {
+  let pending = customerMenuCache.get(storeId);
+  if (!pending) {
+    pending = fetchCustomerMenuFromApi(storeId);
+    customerMenuCache.set(storeId, pending);
+    pending.catch(() => {
+      if (customerMenuCache.get(storeId) === pending) {
+        customerMenuCache.delete(storeId);
+      }
+    });
+  }
+  return pending;
+}
+
 export async function fetchProductById(
   productId: string,
   storeId?: string,
 ): Promise<Product | null> {
   try {
     if (!storeId) return null;
-    const { data } = await apiClient.get<CustomerMenuResponse>(
-      "/order/customer-menu",
-      {
-        params: { store: storeId },
-      },
+    const { products } = await fetchCustomerMenu(storeId);
+    return (
+      products.find((p) => String(p.id) === String(productId)) ?? null
     );
-    const raw = data.data.products.find(
-      (p) => String(p.id) === String(productId),
-    );
-    if (!raw) return null;
-    return mapBackendProductToFrontend(raw, storeId);
   } catch {
     return null;
   }
@@ -346,7 +407,18 @@ function mapBackendBundleToFrontend(bb: BackendBundle): Bundle {
   };
 }
 
-export async function fetchBundles(storeId?: string): Promise<Bundle[]> {
+// In-memory only (module-scoped, lost on reload), keyed by storeId — same
+// proven pattern as storeService.ts's store-config cache and this file's
+// own fetchCustomerMenu cache (Phase 4C.1): holds the raw (throwing)
+// request promise, shared across every caller for that storeId, and a
+// failed request is evicted immediately (see the .catch below) rather
+// than cached, so a later call always retries fresh instead of reusing a
+// broken result. HomePage remounting (e.g. navigating away and back) was
+// measured, live, to re-fetch bundles on every mount with no reuse — this
+// cache eliminates that redundant repeat request within one session.
+const bundlesCache = new Map<string, Promise<Bundle[]>>();
+
+async function fetchBundlesFromApi(storeId?: string): Promise<Bundle[]> {
   const { data } = await apiClient.get<BundleListResponse>(
     "/product-bundle/get-all",
     {
@@ -361,6 +433,21 @@ export async function fetchBundles(storeId?: string): Promise<Bundle[]> {
   return bundles
     .filter((b) => b.status === "active" && b.isAvailable)
     .map(mapBackendBundleToFrontend);
+}
+
+export async function fetchBundles(storeId?: string): Promise<Bundle[]> {
+  const key = storeId ?? "__no_store__";
+  let pending = bundlesCache.get(key);
+  if (!pending) {
+    pending = fetchBundlesFromApi(storeId);
+    bundlesCache.set(key, pending);
+    pending.catch(() => {
+      if (bundlesCache.get(key) === pending) {
+        bundlesCache.delete(key);
+      }
+    });
+  }
+  return pending;
 }
 
 interface CustomerPromoResponse {
@@ -407,7 +494,13 @@ function mapBackendPromoToFrontend(bp: CustomerPromoResponse["data"][number]): P
   };
 }
 
-export async function fetchCustomerPromos(storeId?: string): Promise<PromoCampaign[]> {
+// Same cache pattern as bundlesCache above — HomePage remounting was
+// measured, live, to re-fetch promos on every mount with no reuse.
+const promosCache = new Map<string, Promise<PromoCampaign[]>>();
+
+async function fetchCustomerPromosFromApi(
+  storeId?: string,
+): Promise<PromoCampaign[]> {
   const { data } = await apiClient.get<CustomerPromoResponse>(
     "/promo/customer-active",
     {
@@ -415,4 +508,21 @@ export async function fetchCustomerPromos(storeId?: string): Promise<PromoCampai
     },
   );
   return data.data.map(mapBackendPromoToFrontend);
+}
+
+export async function fetchCustomerPromos(
+  storeId?: string,
+): Promise<PromoCampaign[]> {
+  const key = storeId ?? "__no_store__";
+  let pending = promosCache.get(key);
+  if (!pending) {
+    pending = fetchCustomerPromosFromApi(storeId);
+    promosCache.set(key, pending);
+    pending.catch(() => {
+      if (promosCache.get(key) === pending) {
+        promosCache.delete(key);
+      }
+    });
+  }
+  return pending;
 }

@@ -4,7 +4,6 @@ import { persist } from "zustand/middleware";
 interface CheckoutData {
   tableNumber: string;
   customerName?: string;
-  storeId?: string;
   subtotal: number;
 }
 

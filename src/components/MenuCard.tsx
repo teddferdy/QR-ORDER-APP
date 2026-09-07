@@ -1,28 +1,49 @@
-import React, { useState } from 'react';
-import { Star, Plus, Eye } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { Star, Plus, Eye, Check } from 'lucide-react';
 import type { Product } from '../types';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useCartStore } from '../store/useCartStore';
 import ProductQuickPreview from './ProductQuickPreview';
+import { hasCustomizationOptions } from '../utils/productCustomization';
+import { transformCloudinaryImage, PRODUCT_IMAGE_WIDTH_SMALL } from '../utils/cloudinaryImage';
 
 interface MenuCardProps {
   product: Product;
 }
 
+type AddStatus = 'idle' | 'added' | 'limit';
+
 const MenuCard: React.FC<MenuCardProps> = ({ product }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [addStatus, setAddStatus] = useState<AddStatus>('idle');
+  const addStatusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const addItem = useCartStore((state) => state.addItem);
+  const needsCustomization = hasCustomizationOptions(product);
 
   const href = (path: string) => {
     const sep = path.includes('?') ? '&' : '?';
     return `${path}${sep}table=${searchParams.get('table') || ''}&store=${searchParams.get('store') || ''}&session=${searchParams.get('session') || ''}`;
   };
 
+  const flashStatus = (status: AddStatus) => {
+    if (addStatusTimer.current) clearTimeout(addStatusTimer.current);
+    setAddStatus(status);
+    addStatusTimer.current = setTimeout(() => setAddStatus('idle'), 1400);
+  };
+
+  // A product with any size/spiciness/add-on choice must go through the
+  // customization flow (product detail page) — quick-adding it here would
+  // silently skip those choices. Products with none can still be added in
+  // one tap.
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
-    addItem(product);
+    if (needsCustomization) {
+      navigate(href(`/product/${product.id}`));
+      return;
+    }
+    flashStatus(addItem(product) ? 'added' : 'limit');
   };
 
   const openPreview = (e: React.MouseEvent) => {
@@ -31,6 +52,11 @@ const MenuCard: React.FC<MenuCardProps> = ({ product }) => {
   };
 
   const addFromPreview = () => {
+    if (needsCustomization) {
+      setPreviewOpen(false);
+      navigate(href(`/product/${product.id}`));
+      return;
+    }
     addItem(product);
     setPreviewOpen(false);
   };
@@ -42,7 +68,7 @@ const MenuCard: React.FC<MenuCardProps> = ({ product }) => {
     >
       <div className="relative">
         <img
-          src={product.image}
+          src={transformCloudinaryImage(product.image, PRODUCT_IMAGE_WIDTH_SMALL)}
           alt={product.name}
           className="w-full h-44 object-cover"
           loading="lazy"
@@ -77,11 +103,18 @@ const MenuCard: React.FC<MenuCardProps> = ({ product }) => {
           <h3 className="font-bold text-base line-clamp-1 text-gray-900 dark:text-gray-100">{product.name}</h3>
         </div>
         <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">{product.description}</p>
-        <div className="flex items-center gap-1.5 text-accent text-xs font-bold">
-          <Star size={12} fill="currentColor" />
-          <span>{product.rating}</span>
-          <span className="text-gray-400 dark:text-gray-500 font-normal">({product.reviewsCount})</span>
-        </div>
+        {product.reviewsCount > 0 ? (
+          <div className="flex items-center gap-1.5 text-accent text-xs font-bold">
+            <Star size={12} fill="currentColor" />
+            <span>{product.rating}</span>
+            <span className="text-gray-400 dark:text-gray-500 font-normal">({product.reviewsCount})</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 text-xs font-medium">
+            <Star size={12} fill="none" />
+            <span>0 ulasan</span>
+          </div>
+        )}
         <div className="flex items-center justify-between pt-1">
           <span className="font-bold text-primary text-lg">
             Rp{product.price.toLocaleString()}
@@ -89,10 +122,20 @@ const MenuCard: React.FC<MenuCardProps> = ({ product }) => {
           {product.stock > 0 ? (
             <button
               onClick={handleAddToCart}
-              aria-label="Tambahkan"
-              className="bg-primary/10 text-primary p-2.5 rounded-full hover:bg-primary hover:text-white transition-all shadow-sm"
+              aria-label={needsCustomization ? 'Pilih opsi' : 'Tambahkan'}
+              className={`p-2.5 rounded-full transition-all shadow-sm ${
+                addStatus === 'added'
+                  ? 'bg-green-500 text-white'
+                  : addStatus === 'limit'
+                    ? 'bg-red-500 text-white'
+                    : 'bg-primary/10 text-primary hover:bg-primary hover:text-white'
+              }`}
             >
-              <Plus size={18} strokeWidth={2.5} />
+              {addStatus === 'added' ? (
+                <Check size={18} strokeWidth={2.5} />
+              ) : (
+                <Plus size={18} strokeWidth={2.5} />
+              )}
             </button>
           ) : (
             <span className="text-xs text-gray-400 dark:text-gray-500 font-medium px-3 py-2">
@@ -100,6 +143,11 @@ const MenuCard: React.FC<MenuCardProps> = ({ product }) => {
             </span>
           )}
         </div>
+        {addStatus === 'limit' && (
+          <p className="text-[11px] text-red-500 font-medium -mt-1">
+            Jumlah maksimum di keranjang sudah tercapai.
+          </p>
+        )}
       </div>
 
       <ProductQuickPreview

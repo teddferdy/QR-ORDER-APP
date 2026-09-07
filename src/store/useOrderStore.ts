@@ -1,20 +1,22 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { Order, OrderStatus, WaiterRequest } from "../types";
-import {
-  createCustomerOrder,
-  fetchCustomerOrder,
-} from "../services/orderService";
+import type { Order, WaiterRequest } from "../types";
+import { createCustomerOrder } from "../services/orderService";
 import {
   createWaiterRequest,
   fetchMyWaiterRequests,
 } from "../services/waiterService";
 
 interface OrderState {
-  orders: Order[];
   activeOrderId: string | null;
+  // The store/table context activeOrderId was actually set for — lets
+  // consumers (CallWaiterButton) refuse to attach a request to an order
+  // that belongs to a different table/store than the one currently in the
+  // URL, without having to clear activeOrderId itself on every context
+  // change (which risks racing a legitimate same-table reload).
+  activeOrderStoreId: string | null;
+  activeOrderTableId: string | null;
   waiterRequests: WaiterRequest[];
-  addOrder: (order: Order) => void;
   createOrder: (params: {
     store: number;
     tableId?: number;
@@ -24,20 +26,20 @@ interface OrderState {
     session?: string;
     splitCount?: number;
     items: {
-      productId: number;
+      productId?: number;
       productName: string;
       quantity: number;
       price: number;
       notes?: string;
       options?: unknown[];
       modifiers?: unknown[];
+      bundleId?: number | null;
     }[];
   }) => Promise<Order>;
-  refreshOrder: (orderId: string) => Promise<void>;
-  updateOrderStatus: (orderId: string, status: OrderStatus) => void;
-  setActiveOrder: (orderId: string | null) => void;
-  getActiveOrder: () => Order | undefined;
-  getOrderById: (orderId: string) => Order | undefined;
+  setActiveOrder: (
+    orderId: string | null,
+    context?: { storeId: string | null; tableId: string | null },
+  ) => void;
   addWaiterRequest: (request: WaiterRequest) => void;
   submitWaiterRequest: (params: {
     store: number;
@@ -54,63 +56,31 @@ interface OrderState {
 export const useOrderStore = create<OrderState>()(
   persist(
     (set, get) => ({
-      orders: [],
       activeOrderId: null,
+      activeOrderStoreId: null,
+      activeOrderTableId: null,
       waiterRequests: [],
-
-      addOrder: (order) =>
-        set({
-          orders: [order, ...get().orders],
-          activeOrderId: order.id,
-        }),
 
       createOrder: async (params) => {
         const order = await createCustomerOrder(params);
+        // params.store/tableId are the values order creation was actually
+        // submitted with (URL-authoritative as of G-4), so they're the
+        // correct context to remember alongside the resulting order id.
         set({
-          orders: [order, ...get().orders],
           activeOrderId: order.id,
+          activeOrderStoreId: String(params.store),
+          activeOrderTableId:
+            params.tableId != null ? String(params.tableId) : null,
         });
         return order;
       },
 
-      refreshOrder: async (orderId) => {
-        // The tracking endpoint is keyed by the order's opaque publicToken,
-        // not its numeric id, so resolve the token from what's already in
-        // the store (set at creation time) before fetching.
-        const existing = get().orders.find((o) => o.id === orderId);
-        if (!existing?.publicToken) return;
-        const order = await fetchCustomerOrder(existing.publicToken);
-        if (order) {
-          set({
-            orders: get().orders.map((o) =>
-              o.id === orderId ? { ...o, ...order, publicToken: o.publicToken } : o,
-            ),
-          });
-        }
-      },
-
-      updateOrderStatus: (orderId, status) =>
+      setActiveOrder: (orderId, context) =>
         set({
-          orders: get().orders.map((o) =>
-            o.id === orderId
-              ? {
-                  ...o,
-                  status,
-                  statusHistory: [
-                    ...o.statusHistory,
-                    { status, timestamp: new Date().toISOString() },
-                  ],
-                }
-              : o,
-          ),
+          activeOrderId: orderId,
+          activeOrderStoreId: context?.storeId ?? null,
+          activeOrderTableId: context?.tableId ?? null,
         }),
-
-      setActiveOrder: (orderId) => set({ activeOrderId: orderId }),
-
-      getActiveOrder: () =>
-        get().orders.find((o) => o.id === get().activeOrderId),
-
-      getOrderById: (orderId) => get().orders.find((o) => o.id === orderId),
 
       addWaiterRequest: (request) =>
         set({
@@ -156,8 +126,9 @@ export const useOrderStore = create<OrderState>()(
     {
       name: "bisamakan-orders",
       partialize: (state) => ({
-        orders: state.orders,
         activeOrderId: state.activeOrderId,
+        activeOrderStoreId: state.activeOrderStoreId,
+        activeOrderTableId: state.activeOrderTableId,
         waiterRequests: state.waiterRequests,
       }),
     },

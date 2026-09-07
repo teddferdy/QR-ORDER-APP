@@ -19,6 +19,8 @@ const waiterRequestTypes: { key: string; label: string; icon: string }[] = [
 const CallWaiterButton: React.FC<CallWaiterButtonProps> = ({ orderId: orderIdProp }) => {
   const submitWaiterRequest = useOrderStore((state) => state.submitWaiterRequest);
   const activeOrderId = useOrderStore((state) => state.activeOrderId);
+  const activeOrderStoreId = useOrderStore((state) => state.activeOrderStoreId);
+  const activeOrderTableId = useOrderStore((state) => state.activeOrderTableId);
   const { settings } = useSettingsStore();
   const [searchParams] = useSearchParams();
   const [showMenu, setShowMenu] = useState(false);
@@ -42,7 +44,16 @@ const CallWaiterButton: React.FC<CallWaiterButtonProps> = ({ orderId: orderIdPro
           ? Number(settings.tableNumber)
           : undefined;
       const label = waiterRequestTypes.find((t) => t.key === selectedType)?.label || selectedType;
-      const rawOrderId = orderIdProp || (activeOrderId ?? undefined);
+      // An explicit orderId prop is a deliberate, caller-owned reference and
+      // always trusted. The ambient activeOrderId is only trusted when it
+      // was actually set for THIS table/store — otherwise a customer who
+      // scanned a different QR after placing an earlier order elsewhere
+      // could silently attach this request to that unrelated order.
+      const activeOrderMatchesContext =
+        activeOrderStoreId === urlStore && activeOrderTableId === urlTable;
+      const rawOrderId =
+        orderIdProp ||
+        (activeOrderMatchesContext ? (activeOrderId ?? undefined) : undefined);
       const validOrderId =
         rawOrderId != null && /^\d+$/.test(String(rawOrderId).trim())
           ? String(rawOrderId).trim()

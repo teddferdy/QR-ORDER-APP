@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Clock, Star, Plus } from "lucide-react";
+import { X, Clock, Star, Plus, ChevronRight } from "lucide-react";
 import type { Product } from "../types";
+import { hasCustomizationOptions } from "../utils/productCustomization";
+import { useDialogA11y } from "../hooks/useDialogA11y";
+import { transformCloudinaryImage, PRODUCT_IMAGE_WIDTH_SMALL } from "../utils/cloudinaryImage";
 
 interface ProductQuickPreviewProps {
   product: Product;
@@ -20,13 +23,18 @@ const ProductQuickPreview: React.FC<ProductQuickPreviewProps> = ({
   const ingredients = product.ingredients || [];
   const sizes = product.sizes || [];
   const addOns = product.addOns || [];
+  const optionGroups = product.optionGroups || [];
   const outOfStock = product.stock <= 0;
   const lowStock = product.stock > 0 && product.stock <= 5;
+  const needsCustomization = hasCustomizationOptions(product);
 
   const [activeImage, setActiveImage] = useState(0);
   useEffect(() => {
     setActiveImage(0);
   }, [product.id]);
+
+  const titleId = React.useId();
+  const panelRef = useDialogA11y<HTMLDivElement>(open, onClose);
 
   const galleryImages =
     product.images.length > 0 ? product.images : [product.image];
@@ -40,7 +48,15 @@ const ProductQuickPreview: React.FC<ProductQuickPreviewProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          onClick={onClose}
+          onClick={(e) => {
+            // Without this, the click bubbles through the React tree (portal
+            // content bubbles via its React ancestors, not its DOM ancestors)
+            // up to MenuCard's own onClick, which navigates to the product
+            // detail page — closing the preview would also unintentionally
+            // "click through" to the card underneath it.
+            e.stopPropagation();
+            onClose();
+          }}
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-6"
         >
           <motion.div
@@ -50,11 +66,16 @@ const ProductQuickPreview: React.FC<ProductQuickPreviewProps> = ({
             exit={{ opacity: 0, y: 40 }}
             transition={{ type: "spring", damping: 26, stiffness: 300 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-lg max-h-[92vh] overflow-y-auto bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-3xl shadow-2xl"
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={titleId}
+            tabIndex={-1}
+            className="w-full max-w-lg max-h-[92vh] overflow-y-auto bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-3xl shadow-2xl outline-none"
           >
             <div className="relative">
               <img
-                src={galleryImages.at(safeIndex)}
+                src={transformCloudinaryImage(galleryImages.at(safeIndex), PRODUCT_IMAGE_WIDTH_SMALL)}
                 alt={product.name}
                 className="w-full h-60 sm:h-64 object-cover"
               />
@@ -100,7 +121,7 @@ const ProductQuickPreview: React.FC<ProductQuickPreviewProps> = ({
                     }`}
                   >
                     <img
-                      src={src}
+                      src={transformCloudinaryImage(src, PRODUCT_IMAGE_WIDTH_SMALL)}
                       alt={`${product.name} ${i + 1}`}
                       className="w-14 h-14 object-cover"
                     />
@@ -116,17 +137,27 @@ const ProductQuickPreview: React.FC<ProductQuickPreviewProps> = ({
                     <span className="inline-block text-[11px] font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-full mb-2">
                       {product.category}
                     </span>
-                    <h2 className="text-2xl font-display font-bold text-gray-900 dark:text-gray-100">
+                    <h2
+                      id={titleId}
+                      className="text-2xl font-display font-bold text-gray-900 dark:text-gray-100"
+                    >
                       {product.name}
                     </h2>
                   </div>
-                  <div className="flex items-center gap-1.5 text-accent text-sm font-bold bg-accent/10 px-3 py-1.5 rounded-full shrink-0">
-                    <Star size={14} fill="currentColor" />
-                    <span>{product.rating}</span>
-                    <span className="text-gray-400 dark:text-gray-500 font-normal">
-                      ({product.reviewsCount})
-                    </span>
-                  </div>
+                  {product.reviewsCount > 0 ? (
+                    <div className="flex items-center gap-1.5 text-accent text-sm font-bold bg-accent/10 px-3 py-1.5 rounded-full shrink-0">
+                      <Star size={14} fill="currentColor" />
+                      <span>{product.rating}</span>
+                      <span className="text-gray-400 dark:text-gray-500 font-normal">
+                        ({product.reviewsCount})
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 text-sm font-medium bg-gray-100 dark:bg-gray-700 px-3 py-1.5 rounded-full shrink-0">
+                      <Star size={14} fill="none" />
+                      <span>0 ulasan</span>
+                    </div>
+                  )}
                 </div>
                 <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed mt-3">
                   {product.description}
@@ -186,6 +217,27 @@ const ProductQuickPreview: React.FC<ProductQuickPreviewProps> = ({
                 </div>
               )}
 
+              {optionGroups.map((group) => (
+                <div key={group.id}>
+                  <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-2">
+                    {group.name}
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {group.choices.map((choice) => (
+                      <span
+                        key={choice.name}
+                        className="px-3 py-1.5 rounded-full text-xs font-medium border-2 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400"
+                      >
+                        {choice.name}
+                        {choice.price > 0 && (
+                          <span className="opacity-70"> +Rp{choice.price.toLocaleString()}</span>
+                        )}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
               {addOns.length > 0 && (
                 <div>
                   <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-2">
@@ -210,7 +262,7 @@ const ProductQuickPreview: React.FC<ProductQuickPreviewProps> = ({
               <div className="pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between gap-3">
                 <div>
                   <p className="text-xs text-gray-400 dark:text-gray-500">
-                    Harga
+                    {needsCustomization ? "Mulai dari" : "Harga"}
                   </p>
                   <span className="font-bold text-2xl text-primary">
                     Rp{product.price.toLocaleString()}
@@ -222,8 +274,17 @@ const ProductQuickPreview: React.FC<ProductQuickPreviewProps> = ({
                     onClick={onAdd}
                     className="bg-primary text-white px-5 py-3 rounded-2xl font-bold text-sm flex items-center gap-2 shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all"
                   >
-                    <Plus size={18} strokeWidth={2.5} />
-                    Tambah ke Keranjang
+                    {needsCustomization ? (
+                      <>
+                        Pilih Opsi
+                        <ChevronRight size={18} strokeWidth={2.5} />
+                      </>
+                    ) : (
+                      <>
+                        <Plus size={18} strokeWidth={2.5} />
+                        Tambah ke Keranjang
+                      </>
+                    )}
                   </button>
                 ) : (
                   <span className="text-sm text-gray-400 dark:text-gray-500 font-medium px-3 py-2">

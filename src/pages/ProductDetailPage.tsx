@@ -15,6 +15,11 @@ import CustomizationPanel from "../components/CustomizationPanel";
 import Skeleton from "../components/Skeleton";
 import type { Size, Spiciness, Review } from "../types";
 import { fetchProductReviews } from "../services/reviewService";
+import {
+  transformCloudinaryImage,
+  PRODUCT_IMAGE_WIDTH_SMALL,
+  PRODUCT_IMAGE_WIDTH_LARGE,
+} from "../utils/cloudinaryImage";
 
 const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -35,6 +40,9 @@ const ProductDetailPage: React.FC = () => {
     Spiciness | undefined
   >();
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
+  const [selectedOptionChoices, setSelectedOptionChoices] = useState<
+    Record<string, string>
+  >({});
   const [notes, setNotes] = useState("");
   const [reviews, setReviews] = useState<Review[]>([]);
   const [averageRating, setAverageRating] = useState(0);
@@ -55,6 +63,7 @@ const ProductDetailPage: React.FC = () => {
   useEffect(() => {
     setActiveImage(0);
     setVisibleReviews(5);
+    setSelectedOptionChoices({});
     if (carouselRef.current) carouselRef.current.scrollTo({ left: 0 });
   }, [product?.id]);
 
@@ -175,11 +184,33 @@ const ProductDetailPage: React.FC = () => {
     );
   };
 
+  const handleOptionChoiceChange = (groupId: string, choiceName: string | undefined) => {
+    setSelectedOptionChoices((prev) => {
+      const next = { ...prev };
+      if (choiceName) {
+        next[groupId] = choiceName;
+      } else {
+        delete next[groupId];
+      }
+      return next;
+    });
+  };
+
+  const selectedOptions = (product.optionGroups || []).flatMap((group) => {
+    const choiceName = selectedOptionChoices[group.id];
+    if (!choiceName) return [];
+    const choice = group.choices.find((c) => c.name === choiceName);
+    return choice
+      ? [{ groupId: group.id, groupName: group.name, choiceName, price: choice.price }]
+      : [];
+  });
+
   const handleAddToCart = () => {
     const customization = {
       size: selectedSize,
       spiciness: selectedSpiciness,
       addOns: product.addOns?.filter((a) => selectedAddOns.includes(a.id)),
+      selectedOptions: selectedOptions.length > 0 ? selectedOptions : undefined,
       notes: notes || undefined,
     };
     addItem(product, customization);
@@ -191,7 +222,9 @@ const ProductDetailPage: React.FC = () => {
     return sum + (addOn?.price || 0);
   }, 0);
 
-  const finalPrice = product.price + addOnTotal;
+  const optionGroupsTotal = selectedOptions.reduce((sum, o) => sum + o.price, 0);
+
+  const finalPrice = product.price + addOnTotal + optionGroupsTotal;
 
   const handleReviewSubmit = async () => {
     if (reviewRating === 0 || !reviewComment.trim() || !reviewName.trim())
@@ -274,7 +307,7 @@ const ProductDetailPage: React.FC = () => {
             {galleryImages.map((src, i) => (
               <img
                 key={`${src}-${i}`}
-                src={src}
+                src={transformCloudinaryImage(src, PRODUCT_IMAGE_WIDTH_LARGE)}
                 alt={`${product.name} ${i + 1}`}
                 draggable={false}
                 className="w-full h-72 sm:h-96 object-cover shrink-0 snap-center"
@@ -351,7 +384,7 @@ const ProductDetailPage: React.FC = () => {
                 }`}
               >
                 <img
-                  src={src}
+                  src={transformCloudinaryImage(src, PRODUCT_IMAGE_WIDTH_SMALL)}
                   alt={`${product.name} ${i + 1}`}
                   className="w-16 h-16 object-cover"
                 />
@@ -361,7 +394,101 @@ const ProductDetailPage: React.FC = () => {
         )}
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 space-y-5 border border-gray-50 dark:border-gray-700/50 shadow-sm mb-6">
+      <div className="space-y-5">
+        <div className="flex items-start justify-between">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+            {product.name}
+          </h1>
+          {displayReviewCount > 0 ? (
+            <div className="flex items-center gap-1.5 text-accent text-sm font-bold bg-accent/10 px-3 py-1.5 rounded-full">
+              <Star size={14} fill="currentColor" />
+              {averageRating > 0 ? averageRating.toFixed(1) : product.rating}
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 text-sm font-medium bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-full">
+              <Star size={14} fill="none" />
+              0 ulasan
+            </div>
+          )}
+        </div>
+
+        <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+          {product.description}
+        </p>
+
+        <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+          <span className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-full">
+            ⏱ Estimasi {product.estimatedTime} menit
+          </span>
+          <span
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${product.stock > 0 ? "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400" : "bg-red-50 dark:bg-red-900/20 text-red-500"}`}
+          >
+            {product.stock > 0 ? `✅ Stok: ${product.stock}` : "❌ Habis"}
+          </span>
+        </div>
+
+        {product.ingredients.length > 0 && (
+          <div>
+            <h4 className="font-bold text-sm mb-3 text-gray-900 dark:text-gray-100">
+              Bahan-bahan
+            </h4>
+            <div className="flex gap-2 flex-wrap">
+              {product.ingredients.map((ing) => (
+                <span
+                  key={ing}
+                  className="bg-secondary dark:bg-gray-700 px-3 py-1.5 rounded-full text-xs font-medium text-gray-600 dark:text-gray-400 border border-gray-100 dark:border-gray-600"
+                >
+                  {ing}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <CustomizationPanel
+          product={product}
+          selectedSize={selectedSize}
+          selectedSpiciness={selectedSpiciness}
+          selectedAddOns={selectedAddOns}
+          selectedOptionChoices={selectedOptionChoices}
+          notes={notes}
+          onSizeChange={setSelectedSize}
+          onSpicinessChange={setSelectedSpiciness}
+          onAddOnToggle={handleAddOnToggle}
+          onOptionChoiceChange={handleOptionChoiceChange}
+          onNotesChange={setNotes}
+        />
+
+        <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 space-y-4 border border-gray-50 dark:border-gray-700/50 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-gray-600 dark:text-gray-400 font-medium">
+              Harga
+            </span>
+            <span className="font-bold text-2xl text-primary">
+              Rp{finalPrice.toLocaleString()}
+            </span>
+          </div>
+          {addOnTotal > 0 && (
+            <div className="text-xs text-gray-400 dark:text-gray-500">
+              (+ Rp{addOnTotal.toLocaleString()} topping)
+            </div>
+          )}
+          {optionGroupsTotal > 0 && (
+            <div className="text-xs text-gray-400 dark:text-gray-500">
+              (+ Rp{optionGroupsTotal.toLocaleString()} opsi)
+            </div>
+          )}
+          <button
+            onClick={handleAddToCart}
+            disabled={product.stock <= 0}
+            className="w-full bg-primary text-white py-4 rounded-2xl font-bold tap-scale shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {product.stock > 0 ? "Tambah ke Keranjang" : "Stok Habis"}
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 space-y-5 border border-gray-50 dark:border-gray-700/50 shadow-sm mt-6">
         <div className="flex items-center justify-between gap-3">
           <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <MessageSquare size={18} className="text-primary" />
@@ -592,86 +719,6 @@ const ProductDetailPage: React.FC = () => {
             </div>
           </div>
         )}
-      </div>
-
-      <div className="space-y-5">
-        <div className="flex items-start justify-between">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-            {product.name}
-          </h1>
-          <div className="flex items-center gap-1.5 text-accent text-sm font-bold bg-accent/10 px-3 py-1.5 rounded-full">
-            <Star size={14} fill="currentColor" />
-            {averageRating > 0 ? averageRating.toFixed(1) : product.rating}
-          </div>
-        </div>
-
-        <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-          {product.description}
-        </p>
-
-        <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-          <span className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-full">
-            ⏱ Estimasi {product.estimatedTime} menit
-          </span>
-          <span
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${product.stock > 0 ? "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400" : "bg-red-50 dark:bg-red-900/20 text-red-500"}`}
-          >
-            {product.stock > 0 ? `✅ Stok: ${product.stock}` : "❌ Habis"}
-          </span>
-        </div>
-
-        {product.ingredients.length > 0 && (
-          <div>
-            <h4 className="font-bold text-sm mb-3 text-gray-900 dark:text-gray-100">
-              Bahan-bahan
-            </h4>
-            <div className="flex gap-2 flex-wrap">
-              {product.ingredients.map((ing) => (
-                <span
-                  key={ing}
-                  className="bg-secondary dark:bg-gray-700 px-3 py-1.5 rounded-full text-xs font-medium text-gray-600 dark:text-gray-400 border border-gray-100 dark:border-gray-600"
-                >
-                  {ing}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <CustomizationPanel
-          product={product}
-          selectedSize={selectedSize}
-          selectedSpiciness={selectedSpiciness}
-          selectedAddOns={selectedAddOns}
-          notes={notes}
-          onSizeChange={setSelectedSize}
-          onSpicinessChange={setSelectedSpiciness}
-          onAddOnToggle={handleAddOnToggle}
-          onNotesChange={setNotes}
-        />
-
-        <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 space-y-4 border border-gray-50 dark:border-gray-700/50 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600 dark:text-gray-400 font-medium">
-              Harga
-            </span>
-            <span className="font-bold text-2xl text-primary">
-              Rp{finalPrice.toLocaleString()}
-            </span>
-          </div>
-          {addOnTotal > 0 && (
-            <div className="text-xs text-gray-400 dark:text-gray-500">
-              (+ Rp{addOnTotal.toLocaleString()} topping)
-            </div>
-          )}
-          <button
-            onClick={handleAddToCart}
-            disabled={product.stock <= 0}
-            className="w-full bg-primary text-white py-4 rounded-2xl font-bold tap-scale shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {product.stock > 0 ? "Tambah ke Keranjang" : "Stok Habis"}
-          </button>
-        </div>
       </div>
     </div>
   );

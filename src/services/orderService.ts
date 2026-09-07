@@ -188,6 +188,8 @@ function mapBackendOrderToFrontend(bo: BackendOrder): Order {
       },
       totalPrice: item.totalPrice,
       image: "",
+      bundleId: item.bundleId != null ? String(item.bundleId) : undefined,
+      bundleName: item.bundleName || undefined,
     })),
     subtotal: bo.subTotal,
     tax: bo.taxAmount,
@@ -210,7 +212,10 @@ export interface CreateOrderPayload {
   session?: string;
   splitCount?: number;
   items: {
-    productId: number;
+    // Required for a regular product line. Omitted for a bundle line, where
+    // `bundleId` is the authoritative identifier and the backend resolves
+    // the underlying products itself.
+    productId?: number;
     productName: string;
     quantity: number;
     price: number;
