@@ -18,6 +18,12 @@ const STATUS_FILTERS: { id: string; label: string }[] = [
 
 const COMPLETED_STATUSES = new Set(["Sudah Diantar"]);
 
+// The customer-orders endpoint has no status filter, so a status tab has to
+// filter client-side. Pull a bounded window (not an unbounded fetch-all) of
+// the most recent orders and paginate the filtered result locally; "Semua"
+// keeps server-side pagination at `limit`.
+const FILTERED_WINDOW = 100;
+
 const OrderHistoryPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -44,26 +50,35 @@ const OrderHistoryPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
+      const filteredMode = statusFilter !== "all";
       const result = await fetchCustomerOrders(store, {
-        page,
-        limit,
+        page: filteredMode ? 1 : page,
+        limit: filteredMode ? FILTERED_WINDOW : limit,
         tableId: table,
         session,
       });
-      let filtered = result.orders;
-      if (statusFilter === "completed") {
-        filtered = filtered.filter((o) => COMPLETED_STATUSES.has(o.status));
-      } else if (statusFilter === "cancelled") {
-        filtered = filtered.filter(
-          (o) => o.status === "Dibatalkan",
-        );
-      } else if (statusFilter === "rejected") {
-        filtered = filtered.filter(
-          (o) => o.status === "Ditolak",
-        );
+      const filtered = result.orders.filter((o) => {
+        if (statusFilter === "completed") {
+          return COMPLETED_STATUSES.has(o.status);
+        }
+        if (statusFilter === "cancelled") {
+          return o.status === "Dibatalkan";
+        }
+        if (statusFilter === "rejected") {
+          return o.status === "Ditolak";
+        }
+        return true;
+      });
+      if (filteredMode) {
+        // Filtered view: paginate the client-side-filtered window so both
+        // the list and the page counter reflect the selected status.
+        const start = (page - 1) * limit;
+        setOrders(filtered.slice(start, start + limit));
+        setTotal(filtered.length);
+      } else {
+        setOrders(filtered);
+        setTotal(result.total);
       }
-      setOrders(filtered);
-      setTotal(result.total);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal memuat riwayat");
     } finally {
@@ -234,7 +249,9 @@ const OrderHistoryPage: React.FC = () => {
             <History size={36} className="text-gray-400 dark:text-gray-500" />
           </div>
           <p className="text-gray-500 dark:text-gray-400 font-medium">
-            Tidak ada riwayat pesanan.
+            {statusFilter === "all"
+              ? "Tidak ada riwayat pesanan."
+              : `Tidak ada pesanan berstatus ${STATUS_FILTERS.find((f) => f.id === statusFilter)?.label}.`}
           </p>
         </div>
       ) : (
