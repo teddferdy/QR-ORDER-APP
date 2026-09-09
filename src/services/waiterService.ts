@@ -1,4 +1,4 @@
-import apiClient from "./apiClient";
+import apiClient, { ApiError } from "./apiClient";
 
 interface WaiterRequestData {
   id: number;
@@ -72,11 +72,18 @@ function mapRequest(data: WaiterRequestData): WaiterRequestItem {
 export async function createWaiterRequest(
   payload: WaiterRequestPayload,
 ): Promise<WaiterRequestItem> {
-  const { data } = await apiClient.post(
-    "/waiter-request/customer-create",
-    payload,
-  );
-  return mapRequest(data.data);
+  try {
+    const { data } = await apiClient.post(
+      "/waiter-request/customer-create",
+      payload,
+    );
+    return mapRequest(data.data);
+  } catch (err) {
+    if (err instanceof ApiError) {
+      throw err;
+    }
+    throw new ApiError("Gagal mengirim permintaan. Coba lagi.", 0);
+  }
 }
 
 export async function fetchMyWaiterRequests(
@@ -90,7 +97,10 @@ export async function fetchMyWaiterRequests(
     const requests = data.data || [];
     if (!Array.isArray(requests)) return [];
     return requests.map(mapRequest);
-  } catch {
-    return [];
+  } catch (err) {
+    if (err instanceof ApiError) {
+      throw err;
+    }
+    throw new ApiError("Gagal memuat riwayat permintaan.", 0);
   }
 }

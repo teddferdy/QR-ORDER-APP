@@ -29,6 +29,8 @@ function statusMessage(status: string) {
       return "Pesananmu ditolak oleh kasir.";
     case "Dibatalkan":
       return "Pesananmu dibatalkan.";
+    case "Diproses":
+      return "Pesananmu sudah dikonfirmasi dan sedang diproses.";
     case "Sedang Dimasak":
       return "Pesananmu sedang diproses di dapur.";
     case "Siap Diantar":

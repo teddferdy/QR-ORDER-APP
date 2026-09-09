@@ -43,14 +43,28 @@ const WaiterPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
 
-  const storeId = searchParams.get("store") || settings.storeId || "1";
+  const storeId = searchParams.get("store") || settings.storeId;
   const tableId =
     searchParams.get("table") || settings.tableNumber || undefined;
 
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+
   useEffect(() => {
+    if (!storeId) return;
     let active = true;
+    setLoadError(null);
     fetchWaiterRequests(storeId, tableId)
-      .catch(() => {})
+      .then(() => {
+        if (active) setLoadError(null);
+      })
+      .catch((err) => {
+        if (active) {
+          setLoadError(
+            err instanceof Error ? err.message : "Gagal memuat riwayat permintaan.",
+          );
+        }
+      })
       .finally(() => {
         if (active) setLoading(false);
       });
@@ -58,7 +72,7 @@ const WaiterPage: React.FC = () => {
       active = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storeId, tableId]);
+  }, [storeId, tableId, reloadKey]);
 
   return (
     <div className="space-y-6 pb-20">
@@ -67,12 +81,24 @@ const WaiterPage: React.FC = () => {
           Pelayan
         </h2>
         <button
-          onClick={() => fetchWaiterRequests(storeId, tableId).catch(() => {})}
+          onClick={() => setReloadKey((k) => k + 1)}
           className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
         >
           <RefreshCw size={14} /> Refresh
         </button>
       </div>
+
+      {loadError && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-4 flex items-center justify-between gap-3">
+          <p className="text-sm text-red-700 dark:text-red-300">{loadError}</p>
+          <button
+            onClick={() => setReloadKey((k) => k + 1)}
+            className="shrink-0 text-xs font-bold text-primary bg-primary/10 px-3 py-2 rounded-xl tap-scale"
+          >
+            Coba Lagi
+          </button>
+        </div>
+      )}
 
       <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 space-y-5 border border-gray-50 dark:border-gray-700/50 shadow-sm">
         <div className="text-center space-y-3">
@@ -103,12 +129,14 @@ const WaiterPage: React.FC = () => {
             </p>
           </div>
         ) : allRequests.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-4xl mb-3">✨</p>
-            <p className="text-gray-400 dark:text-gray-500 text-sm">
-              Belum ada permintaan.
-            </p>
-          </div>
+          loadError ? null : (
+            <div className="text-center py-12">
+              <p className="text-4xl mb-3">✨</p>
+              <p className="text-gray-400 dark:text-gray-500 text-sm">
+                Belum ada permintaan.
+              </p>
+            </div>
+          )
         ) : (
           allRequests.map((req) => {
             const st = statusStyle[req.status] || statusStyle.Pending;

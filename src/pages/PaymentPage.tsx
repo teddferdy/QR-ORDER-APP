@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useCartStore } from "../store/useCartStore";
 import { useOrderStore } from "../store/useOrderStore";
 import { useCheckoutStore } from "../store/useCheckoutStore";
 import { useStoreConfig } from "../hooks/useStoreConfig";
+import { usePromos } from "../hooks/usePromos";
 import type { Order, PaymentMethod } from "../types";
 import PaymentMethods from "../components/PaymentMethods";
 import { ChevronLeft, PartyPopper } from "lucide-react";
@@ -19,6 +20,7 @@ const PaymentPage: React.FC = () => {
   const { data: checkoutData, clearCheckoutData } = useCheckoutStore();
   const store = searchParams.get("store");
   const { config } = useStoreConfig(store);
+  const { promos } = usePromos(store);
 
   const href = (path: string) => {
     const sep = path.includes("?") ? "&" : "?";
@@ -32,6 +34,11 @@ const PaymentPage: React.FC = () => {
   const [confirmedOrder, setConfirmedOrder] = useState<Order | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // Synchronous re-entry guard on order submission: prevents a fast
+  // double-tap (before React re-renders with `processing` true and the
+  // button disabled) from issuing two orders. Reset on failure so the
+  // customer can retry after a genuine error.
+  const submitAttemptedRef = useRef(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 300);
@@ -138,6 +145,8 @@ const PaymentPage: React.FC = () => {
   const total = subtotalValue + tax + serviceCharge;
 
   const handlePayment = async () => {
+    if (submitAttemptedRef.current) return;
+    submitAttemptedRef.current = true;
     setProcessing(true);
     setPaymentError(null);
     try {
@@ -162,6 +171,10 @@ const PaymentPage: React.FC = () => {
       setConfirmedOrder(order);
       setSuccess(true);
     } catch (err) {
+      // Allow a retry attempt on failure — the duplicate-flag is only meant
+      // to stop an accidental double-tap from issuing two orders, not to
+      // trap the customer out of trying again after a genuine failure.
+      submitAttemptedRef.current = false;
       setPaymentError(
         err instanceof Error
           ? err.message
@@ -264,6 +277,35 @@ const PaymentPage: React.FC = () => {
           <span className="text-primary">Rp{total.toLocaleString()}</span>
         </div>
       </div>
+
+      {promos.length > 0 && (
+        <div className="bg-primary/5 dark:bg-primary/10 rounded-3xl p-5 space-y-3 border border-primary/15 dark:border-primary/20">
+          <h3 className="font-bold text-sm text-gray-900 dark:text-gray-100">
+            🎁 Promo Berjalan
+          </h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+            Promo diproses oleh kasir saat pembayaran. Sebutkan kode promo
+            berikut ke kasir untuk mendapatkan penawaran.
+          </p>
+          <div className="space-y-2">
+            {promos.slice(0, 3).map((promo) => (
+              <div
+                key={promo.id}
+                className="flex items-center justify-between gap-3 text-sm"
+              >
+                <span className="text-gray-700 dark:text-gray-300 min-w-0 truncate">
+                  {promo.name}
+                </span>
+                {promo.code && (
+                  <span className="bg-white dark:bg-gray-800 border border-primary/20 text-primary text-xs font-mono font-bold px-2.5 py-1 rounded-lg shrink-0">
+                    {promo.code}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <PaymentMethods
         selectedMethod={selectedMethod}

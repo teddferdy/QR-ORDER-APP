@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Headphones } from 'lucide-react';
 import { useOrderStore } from '../store/useOrderStore';
 import { useSettingsStore } from '../store/useSettingsStore';
@@ -29,9 +29,13 @@ const CallWaiterButton: React.FC<CallWaiterButtonProps> = ({ orderId: orderIdPro
   const [lastRequest, setLastRequest] = useState<string | null>(null);
   const [requestError, setRequestError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Synchronous re-entry guard: a fast second tap before React re-renders
+  // with `submitting` true could otherwise send two identical requests.
+  const submitInFlight = useRef(false);
 
   const handleSubmit = async () => {
-    if (!selectedType) return;
+    if (!selectedType || submitInFlight.current) return;
+    submitInFlight.current = true;
     setSubmitting(true);
     setRequestError(null);
     try {
@@ -69,8 +73,10 @@ const CallWaiterButton: React.FC<CallWaiterButtonProps> = ({ orderId: orderIdPro
       setSelectedType(null);
       setNotes('');
       setShowMenu(false);
+      submitInFlight.current = false;
       setTimeout(() => setLastRequest(null), 3000);
     } catch (err) {
+      submitInFlight.current = false;
       setLastRequest(null);
       setRequestError(
         err instanceof Error

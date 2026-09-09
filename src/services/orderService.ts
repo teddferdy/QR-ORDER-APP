@@ -1,4 +1,4 @@
-import apiClient from "./apiClient";
+import apiClient, { ApiError } from "./apiClient";
 import type { Order, OrderStatus, PaymentMethod } from "../types";
 
 interface CustomerCreateResponse {
@@ -229,11 +229,18 @@ export interface CreateOrderPayload {
 export async function createCustomerOrder(
   payload: CreateOrderPayload,
 ): Promise<Order> {
-  const { data } = await apiClient.post<CustomerCreateResponse>(
-    "/order/customer-create",
-    payload,
-  );
-  return mapBackendOrderToFrontend(data.data);
+  try {
+    const { data } = await apiClient.post<CustomerCreateResponse>(
+      "/order/customer-create",
+      payload,
+    );
+    return mapBackendOrderToFrontend(data.data);
+  } catch (err) {
+    if (err instanceof ApiError) {
+      throw err;
+    }
+    throw new ApiError("Gagal membuat pesanan. Coba lagi.", 0);
+  }
 }
 
 export async function fetchCustomerOrder(
@@ -267,7 +274,10 @@ export async function fetchCustomerOrder(
       createdAt: d.createdAt,
       statusHistory: [{ status: mapStatus(d.status), timestamp: d.createdAt }],
     };
-  } catch {
+  } catch (err) {
+    if (err instanceof ApiError) {
+      throw err;
+    }
     return null;
   }
 }
@@ -290,7 +300,10 @@ export async function fetchCustomerOrders(
       orders: orders.map((bo: BackendOrder) => mapBackendOrderToFrontend(bo)),
       total: data.pagination?.total || orders.length,
     };
-  } catch {
+  } catch (err) {
+    if (err instanceof ApiError) {
+      throw err;
+    }
     return { orders: [], total: 0 };
   }
 }

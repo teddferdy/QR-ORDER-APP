@@ -100,6 +100,7 @@ const MissingParamsPage: React.FC = () => (
 const Layout: React.FC = () => {
   const [searchParams] = useSearchParams();
   const totalItems = useCartStore((state) => state.totalItems());
+  const setCartStoreId = useCartStore((state) => state.setStoreId);
   const { setTableNumber, setStoreId } = useSettingsStore();
   const setActiveOrder = useOrderStore((state) => state.setActiveOrder);
 
@@ -113,8 +114,11 @@ const Layout: React.FC = () => {
 
   useEffect(() => {
     if (table) setTableNumber(table);
-    if (store) setStoreId(store);
-  }, [table, store, setTableNumber, setStoreId]);
+    if (store) {
+      setStoreId(store);
+      setCartStoreId(store);
+    }
+  }, [table, store, setTableNumber, setStoreId, setCartStoreId]);
 
   useEffect(() => {
     if (!orderToken || !store) return;
