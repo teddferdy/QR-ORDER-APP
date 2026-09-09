@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 import type { CartItem, Product, CartItemCustomization } from "../types";
 
 interface CartState {
+  storeId: string | null;
   items: CartItem[];
   addItem: (product: Product, customization?: CartItemCustomization) => boolean;
   removeItem: (productId: string) => void;
@@ -12,6 +13,7 @@ interface CartState {
     customization: CartItemCustomization,
   ) => void;
   clearCart: () => void;
+  setStoreId: (storeId: string | null) => void;
   totalItems: () => number;
   subtotal: () => number;
   tax: () => number;
@@ -36,6 +38,7 @@ function calcUnitPrice(
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
+      storeId: null,
       items: [],
       addItem: (product, customization) => {
         const currentItems = get().items;
@@ -129,6 +132,14 @@ export const useCartStore = create<CartState>()(
         });
       },
       clearCart: () => set({ items: [] }),
+      setStoreId: (newStoreId) => {
+        const current = get().storeId;
+        if (newStoreId && current && newStoreId !== current) {
+          set({ storeId: newStoreId, items: [] });
+        } else {
+          set({ storeId: newStoreId });
+        }
+      },
       totalItems: () =>
         get().items.reduce((acc, item) => acc + item.quantity, 0),
       subtotal: () =>
@@ -139,6 +150,10 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: "bisamakan-cart",
+      partialize: (state) => ({
+        storeId: state.storeId,
+        items: state.items,
+      }),
     },
   ),
 );

@@ -1,4 +1,4 @@
-import apiClient from "./apiClient";
+import apiClient, { ApiError } from "./apiClient";
 import type { Product, Category, AddOn, Review, Bundle, PromoCampaign, ProductOptionGroup } from "../types";
 
 interface CustomerMenuResponse {
@@ -261,42 +261,49 @@ const customerMenuCache = new Map<string, Promise<CustomerMenuResult>>();
 async function fetchCustomerMenuFromApi(
   storeId: string,
 ): Promise<CustomerMenuResult> {
-  const { data } = await apiClient.get<CustomerMenuResponse>(
-    "/order/customer-menu",
-    {
-      params: { store: storeId },
-    },
-  );
+  try {
+    const { data } = await apiClient.get<CustomerMenuResponse>(
+      "/order/customer-menu",
+      {
+        params: { store: storeId },
+      },
+    );
 
-  const categoriesMap = new Map<string, MenuCategoryUI>();
+    const categoriesMap = new Map<string, MenuCategoryUI>();
 
-  data.data.categories.forEach((cat) => {
-    const catName = cat.name || cat.value;
-    if (!catName || cat.status === "inactive") return;
-    if (categoriesMap.has(catName)) return;
-    categoriesMap.set(catName, {
-      id: catName,
-      name: catName,
-      icon: cat.image || safeIcon(catName),
-    });
-  });
-
-  const products = data.data.products.map((bp) => {
-    const catName = bp.categoryData?.name || "Makanan";
-    if (!categoriesMap.has(catName)) {
+    data.data.categories.forEach((cat) => {
+      const catName = cat.name || cat.value;
+      if (!catName || cat.status === "inactive") return;
+      if (categoriesMap.has(catName)) return;
       categoriesMap.set(catName, {
         id: catName,
         name: catName,
-        icon: safeIcon(catName),
+        icon: cat.image || safeIcon(catName),
       });
-    }
-    return mapBackendProductToFrontend(bp, storeId);
-  });
+    });
 
-  return {
-    products,
-    categories: Array.from(categoriesMap.values()),
-  };
+    const products = data.data.products.map((bp) => {
+      const catName = bp.categoryData?.name || "Makanan";
+      if (!categoriesMap.has(catName)) {
+        categoriesMap.set(catName, {
+          id: catName,
+          name: catName,
+          icon: safeIcon(catName),
+        });
+      }
+      return mapBackendProductToFrontend(bp, storeId);
+    });
+
+    return {
+      products,
+      categories: Array.from(categoriesMap.values()),
+    };
+  } catch (err) {
+    if (err instanceof ApiError) {
+      throw err;
+    }
+    throw new ApiError("Gagal memuat menu. Coba lagi nanti.", 0);
+  }
 }
 
 export async function fetchCustomerMenu(
@@ -304,7 +311,10 @@ export async function fetchCustomerMenu(
 ): Promise<CustomerMenuResult> {
   let pending = customerMenuCache.get(storeId);
   if (!pending) {
-    pending = fetchCustomerMenuFromApi(storeId);
+    pending = fetchCustomerMenuFromApi(storeId).catch((err) => {
+      if (err instanceof ApiError) throw err;
+      throw new ApiError("Gagal memuat menu. Coba lagi nanti.", 0);
+    });
     customerMenuCache.set(storeId, pending);
     pending.catch(() => {
       if (customerMenuCache.get(storeId) === pending) {
@@ -419,27 +429,37 @@ function mapBackendBundleToFrontend(bb: BackendBundle): Bundle {
 const bundlesCache = new Map<string, Promise<Bundle[]>>();
 
 async function fetchBundlesFromApi(storeId?: string): Promise<Bundle[]> {
-  const { data } = await apiClient.get<BundleListResponse>(
-    "/product-bundle/get-all",
-    {
-      params: {
-        page: 1,
-        limit: 50,
-        ...(storeId ? { store: storeId } : {}),
+  try {
+    const { data } = await apiClient.get<BundleListResponse>(
+      "/product-bundle/get-all",
+      {
+        params: {
+          page: 1,
+          limit: 50,
+          ...(storeId ? { store: storeId } : {}),
+        },
       },
-    },
-  );
-  const bundles = data.data.items as BackendBundle[];
-  return bundles
-    .filter((b) => b.status === "active" && b.isAvailable)
-    .map(mapBackendBundleToFrontend);
+    );
+    const bundles = data.data.items as BackendBundle[];
+    return bundles
+      .filter((b) => b.status === "active" && b.isAvailable)
+      .map(mapBackendBundleToFrontend);
+  } catch (err) {
+    if (err instanceof ApiError) {
+      throw err;
+    }
+    throw new ApiError("Gagal memuat bundle. Coba lagi nanti.", 0);
+  }
 }
 
 export async function fetchBundles(storeId?: string): Promise<Bundle[]> {
   const key = storeId ?? "__no_store__";
   let pending = bundlesCache.get(key);
   if (!pending) {
-    pending = fetchBundlesFromApi(storeId);
+    pending = fetchBundlesFromApi(storeId).catch((err) => {
+      if (err instanceof ApiError) throw err;
+      throw new ApiError("Gagal memuat bundle. Coba lagi nanti.", 0);
+    });
     bundlesCache.set(key, pending);
     pending.catch(() => {
       if (bundlesCache.get(key) === pending) {
@@ -501,13 +521,20 @@ const promosCache = new Map<string, Promise<PromoCampaign[]>>();
 async function fetchCustomerPromosFromApi(
   storeId?: string,
 ): Promise<PromoCampaign[]> {
-  const { data } = await apiClient.get<CustomerPromoResponse>(
-    "/promo/customer-active",
-    {
-      params: storeId ? { store: storeId } : {},
-    },
-  );
-  return data.data.map(mapBackendPromoToFrontend);
+  try {
+    const { data } = await apiClient.get<CustomerPromoResponse>(
+      "/promo/customer-active",
+      {
+        params: storeId ? { store: storeId } : {},
+      },
+    );
+    return data.data.map(mapBackendPromoToFrontend);
+  } catch (err) {
+    if (err instanceof ApiError) {
+      throw err;
+    }
+    throw new ApiError("Gagal memuat promo. Coba lagi nanti.", 0);
+  }
 }
 
 export async function fetchCustomerPromos(
@@ -516,7 +543,10 @@ export async function fetchCustomerPromos(
   const key = storeId ?? "__no_store__";
   let pending = promosCache.get(key);
   if (!pending) {
-    pending = fetchCustomerPromosFromApi(storeId);
+    pending = fetchCustomerPromosFromApi(storeId).catch((err) => {
+      if (err instanceof ApiError) throw err;
+      throw new ApiError("Gagal memuat promo. Coba lagi nanti.", 0);
+    });
     promosCache.set(key, pending);
     pending.catch(() => {
       if (promosCache.get(key) === pending) {

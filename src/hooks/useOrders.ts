@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useTransition } from "react";
 import { fetchCustomerOrders } from "../services/orderService";
+import { ApiError } from "../services/apiClient";
 import type { Order } from "../types";
 
 interface UseOrdersResult {
@@ -16,6 +17,17 @@ const POLL_BACKOFF_MULTIPLIER = 1.5;
 const MAX_RETRY_ATTEMPTS = 3;
 const RETRY_BASE_DELAY = 1000;
 
+// Errors that must NOT be auto-retried: the backend's authorization/tenant
+// boundary (401/403/404) and rate-limit responses (429) indicate a state
+// change is not going to happen by retrying — hammering a 403 retries an
+// unauthorized call, and hammering a 429 makes the rate limiting worse.
+// Only transient failures (network/timeout/5xx) get the bounded backoff
+// retry below.
+function isTransientError(err: unknown): boolean {
+  if (!(err instanceof ApiError)) return true;
+  return err.status === 0 || (err.status >= 500 && err.status < 600);
+}
+
 export function useOrders(
   storeId: string | null,
   options?: { tableId?: string; session?: string; page?: number; limit?: number },
@@ -30,6 +42,7 @@ export function useOrders(
   const pollIntervalRef = useRef<number>(BASE_POLL_INTERVAL);
   const retryCountRef = useRef<number>(0);
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const optionsRef = useRef(options);
   useEffect(() => {
@@ -116,11 +129,13 @@ export function useOrders(
         if (cancelled) return;
         const msg = err instanceof Error ? err.message : "Gagal memuat pesanan";
         setError(msg);
+        if (!isTransientError(err)) return;
         retryCountRef.current += 1;
         if (retryCountRef.current <= MAX_RETRY_ATTEMPTS) {
           const delay =
             RETRY_BASE_DELAY * Math.pow(2, retryCountRef.current - 1);
-          setTimeout(() => {
+          retryTimerRef.current = setTimeout(() => {
+            retryTimerRef.current = null;
             setTrigger((t) => t + 1);
           }, delay);
         }
@@ -129,6 +144,10 @@ export function useOrders(
 
     return () => {
       cancelled = true;
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
     };
   }, [
     storeId,

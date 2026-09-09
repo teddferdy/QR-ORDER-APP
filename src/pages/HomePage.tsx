@@ -10,6 +10,7 @@ import BundleCard from "../components/BundleCard";
 import PromoBanner from "../components/PromoBanner";
 import CategoryIcon from "../components/CategoryIcon";
 import Skeleton from "../components/Skeleton";
+import { RefreshCw } from "lucide-react";
 import type { Category } from "../types";
 
 const HomePage: React.FC = () => {
@@ -21,7 +22,7 @@ const HomePage: React.FC = () => {
   const table = searchParams.get("table");
   const store = searchParams.get("store");
 
-  const { products, categories, loading, error } = useProducts(store);
+  const { products, categories, loading, error, refetch } = useProducts(store);
   const { bundles } = useBundles(store);
   const { promos } = usePromos(store);
   const { config, error: storeConfigError } = useStoreConfig(store);
@@ -79,12 +80,18 @@ const HomePage: React.FC = () => {
 
   if (error) {
     return (
-      <div className="text-center py-20">
+      <div className="text-center py-20 space-y-4">
         <p className="text-5xl mb-4">⚠️</p>
         <p className="text-gray-500 dark:text-gray-400 font-medium">{error}</p>
-        <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">
-          Coba muat ulang halaman.
+        <p className="text-gray-400 dark:text-gray-500 text-sm">
+          Coba muat ulang halaman atau tekan tombol di bawah.
         </p>
+        <button
+          onClick={() => refetch()}
+          className="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-2xl font-bold tap-scale shadow-lg shadow-primary/20"
+        >
+          <RefreshCw size={16} /> Muat Ulang
+        </button>
       </div>
     );
   }

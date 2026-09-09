@@ -1,4 +1,4 @@
-import apiClient from "./apiClient";
+import apiClient, { ApiError } from "./apiClient";
 import type { Review } from "../types";
 
 interface ReviewCreatePayload {
@@ -26,26 +26,40 @@ interface ProductReviewsResponse {
 export async function createReview(
   payload: ReviewCreatePayload,
 ): Promise<Review> {
-  const { data } = await apiClient.post<ReviewResponse>(
-    "/order/customer-review",
-    payload,
-  );
-  return data.data;
+  try {
+    const { data } = await apiClient.post<ReviewResponse>(
+      "/order/customer-review",
+      payload,
+    );
+    return data.data;
+  } catch (err) {
+    if (err instanceof ApiError) {
+      throw err;
+    }
+    throw new ApiError("Gagal mengirim ulasan. Coba lagi.", 0);
+  }
 }
 
 export async function fetchProductReviews(
   productId: string,
   storeId: string,
 ): Promise<{ reviews: Review[]; averageRating: number; totalReviews: number }> {
-  const { data } = await apiClient.get<ProductReviewsResponse>(
-    "/order/customer-reviews",
-    {
-      params: { productId, store: storeId },
-    },
-  );
-  return {
-    reviews: data.data.reviews || [],
-    averageRating: data.data.averageRating || 0,
-    totalReviews: data.data.totalReviews || 0,
-  };
+  try {
+    const { data } = await apiClient.get<ProductReviewsResponse>(
+      "/order/customer-reviews",
+      {
+        params: { productId, store: storeId },
+      },
+    );
+    return {
+      reviews: data.data.reviews || [],
+      averageRating: data.data.averageRating || 0,
+      totalReviews: data.data.totalReviews || 0,
+    };
+  } catch (err) {
+    if (err instanceof ApiError) {
+      throw err;
+    }
+    throw new ApiError("Gagal memuat ulasan. Coba lagi.", 0);
+  }
 }
