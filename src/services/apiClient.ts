@@ -9,8 +9,18 @@ export class ApiError extends Error {
   }
 }
 
+// Dev keeps a localhost convenience fallback; production must never silently
+// fall back to localhost (the deployed app would call the developer's machine).
+// If a production build is somehow shipped without VITE_API_BASE_URL this
+// throws loudly at load instead of talking to localhost.
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5001";
+  import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? "http://localhost:5001" : "");
+
+if (!API_BASE_URL) {
+  throw new Error(
+    "VITE_API_BASE_URL is required in production. Set it in CI / Vercel environment variables (e.g. VITE_API_BASE_URL=https://api-bisa-nota.vercel.app)."
+  );
+}
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
