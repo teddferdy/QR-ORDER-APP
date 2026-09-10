@@ -11,6 +11,7 @@ import { ChevronLeft, PartyPopper } from "lucide-react";
 import Skeleton from "../components/Skeleton";
 import { buildOrderItemsPayload } from "../utils/buildOrderItemsPayload";
 import { bareTableDesignator } from "../utils/tableDisplay";
+import { createIdempotencyKey } from "../utils/idempotencyKey";
 
 const PaymentPage: React.FC = () => {
   const navigate = useNavigate();
@@ -34,6 +35,12 @@ const PaymentPage: React.FC = () => {
   const [confirmedOrder, setConfirmedOrder] = useState<Order | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // The page is the checkout attempt: a fresh mount is a fresh attempt, and a
+  // retry after failure reuses this same component instance. So one ref per
+  // mount gives P5-02's contract exactly — same key across retries of the
+  // same attempt (backend dedupes on (store, idempotencyKey)), fresh key for a
+  // genuinely new attempt. Mirrors FE-POS-App CheckoutModal's proven pattern.
+  const idempotencyKeyRef = useRef<string>(createIdempotencyKey());
   // Synchronous re-entry guard on order submission: prevents a fast
   // double-tap (before React re-renders with `processing` true and the
   // button disabled) from issuing two orders. Reset on failure so the
@@ -162,6 +169,7 @@ const PaymentPage: React.FC = () => {
         customerName: customerName || undefined,
         paymentMethod: selectedMethod,
         session: searchParams.get("session") || undefined,
+        idempotencyKey: idempotencyKeyRef.current,
         splitCount: selectedMethod === "Split Bill" ? splitCount : undefined,
         items: buildOrderItemsPayload(items),
       });
