@@ -32,6 +32,13 @@ interface BackendProduct {
   conversionFactor: number;
   status: string;
   isAvailable: boolean;
+  // F4-03: authoritative per-store stock for the requested store
+  // (getEffectiveStock semantics — a present store row wins, including an
+  // explicit 0; otherwise the base product.stock). Absent on older backends.
+  effectiveStock?: number | null;
+  // F4-03: fulfillment strategy — 'stocked' (default) | 'make_to_order' |
+  // 'hybrid'. Absent on older backends (defaults to 'stocked').
+  inventoryMode?: string | null;
   isBestSeller?: boolean;
   isPromo?: boolean;
   isVegetarian?: boolean;
@@ -188,6 +195,22 @@ function mapBackendReviewToFrontend(br: BackendReview, productId: string): Revie
   };
 }
 
+// F4-03: customer-facing availability must reflect the backend's authoritative
+// per-store effective stock (a present store row wins — including an explicit
+// 0 — otherwise base product.stock), NOT the raw/global product.stock. The one
+// exception mirrors backend order validation (BE-POS-App order.js): a
+// make_to_order product's finished-good stock is not authoritative (its
+// ingredients are resolved at deduction time), so a store-resolved 0 must
+// NEVER render such a product unavailable — its existing (raw-stock) display
+// behavior is preserved unchanged.
+function computeCustomerStock(bp: BackendProduct): number {
+  if (!bp.isAvailable) return 0;
+  if ((bp.inventoryMode ?? "stocked") === "make_to_order") {
+    return bp.stock;
+  }
+  return bp.effectiveStock ?? bp.stock;
+}
+
 export function mapBackendProductToFrontend(
   bp: BackendProduct,
   storeId?: string,
@@ -225,7 +248,7 @@ export function mapBackendProductToFrontend(
     isPromo: !!bp.isPromo,
     isVegetarian: !!bp.isVegetarian,
     estimatedTime: bp.estimationTime || 15,
-    stock: bp.isAvailable ? bp.stock : 0,
+    stock: computeCustomerStock(bp),
     storeId: storeId || String(bp.category),
     sizes: sizes.length > 0 ? (sizes as Product["sizes"]) : undefined,
     spicinessLevels: undefined,
