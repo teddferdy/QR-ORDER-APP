@@ -428,16 +428,19 @@ function mapBackendBundleToFrontend(bb: BackendBundle): Bundle {
 // cache eliminates that redundant repeat request within one session.
 const bundlesCache = new Map<string, Promise<Bundle[]>>();
 
+// F-1: was "/product-bundle/get-all" — an authenticated (JWT) admin route.
+// BISA-MAKAN-APP has no login flow, so every call unconditionally 401'd and
+// the "Bundle Promo" section never displayed anything. "/customer-active" is
+// the public, store-scoped counterpart (mirrors "/promo/customer-active",
+// already used by fetchCustomerPromosFromApi below) — the backend still
+// enforces store-ownership and active/available/validity filtering itself,
+// so nothing here is trusted client-side.
 async function fetchBundlesFromApi(storeId?: string): Promise<Bundle[]> {
   try {
     const { data } = await apiClient.get<BundleListResponse>(
-      "/product-bundle/get-all",
+      "/product-bundle/customer-active",
       {
-        params: {
-          page: 1,
-          limit: 50,
-          ...(storeId ? { store: storeId } : {}),
-        },
+        params: storeId ? { store: storeId } : {},
       },
     );
     const bundles = data.data.items as BackendBundle[];
