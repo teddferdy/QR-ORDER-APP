@@ -211,6 +211,9 @@ export interface CreateOrderPayload {
   paymentMethod?: string;
   session?: string;
   splitCount?: number;
+  // P5-02: stable per-checkout-attempt key the backend dedupes on
+  // (store, idempotencyKey) — prevents a duplicate order on retry.
+  idempotencyKey?: string;
   items: {
     // Required for a regular product line. Omitted for a bundle line, where
     // `bundleId` is the authoritative identifier and the backend resolves

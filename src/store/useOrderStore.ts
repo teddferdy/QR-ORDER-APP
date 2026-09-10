@@ -25,6 +25,7 @@ interface OrderState {
     paymentMethod?: string;
     session?: string;
     splitCount?: number;
+    idempotencyKey?: string;
     items: {
       productId?: number;
       productName: string;
