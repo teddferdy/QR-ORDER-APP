@@ -21,8 +21,8 @@ interface CartState {
   totalPrice: () => number;
 }
 
-const TAX_RATE = 0.11;
-const SERVICE_CHARGE_RATE = 0.05;
+const TAX_RATE = 0;
+const SERVICE_CHARGE_RATE = 0;
 
 function calcUnitPrice(
   basePrice: number,

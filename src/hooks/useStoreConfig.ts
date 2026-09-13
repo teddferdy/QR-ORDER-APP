@@ -11,8 +11,8 @@ interface UseStoreConfigResult {
 }
 
 const DEFAULT_CONFIG: StoreConfig = {
-  taxRate: 0.11,
-  serviceChargeRate: 0.05,
+  taxRate: 0,
+  serviceChargeRate: 0,
   storeName: "",
 };
 
