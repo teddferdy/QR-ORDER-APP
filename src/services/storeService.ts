@@ -41,8 +41,8 @@ export interface StoreConfig {
 }
 
 const DEFAULT_STORE_CONFIG: StoreConfig = {
-  taxRate: 0.11,
-  serviceChargeRate: 0.05,
+  taxRate: 0,
+  serviceChargeRate: 0,
   storeName: "",
 };
 
@@ -78,8 +78,8 @@ async function fetchStoreConfigFromApi(storeId: string): Promise<StoreConfig> {
   );
 
   return {
-    taxRate: taxConfig ? taxConfig.rate / 100 : 0.11,
-    serviceChargeRate: serviceConfig ? serviceConfig.rate / 100 : 0.05,
+    taxRate: taxConfig ? taxConfig.rate / 100 : 0,
+    serviceChargeRate: serviceConfig ? serviceConfig.rate / 100 : 0,
     storeName: store?.name || "",
   };
 }

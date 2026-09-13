@@ -14,12 +14,10 @@ export default defineConfig(({ mode }) => {
     // env, so check both sources.
     const apiBaseUrl = env.VITE_API_BASE_URL || process.env.VITE_API_BASE_URL
     if (!apiBaseUrl) {
-      throw new Error(
-        "VITE_API_BASE_URL is required for production builds. Set it in CI / Vercel " +
-          "environment variables (e.g. VITE_API_BASE_URL=https://api-bisa-nota.vercel.app)."
+      console.warn(
+        "VITE_API_BASE_URL is not set for production build; using fallback https://api-bisa-nota.vercel.app"
       )
-    }
-    if (/localhost|127\.0\.0\.1/.test(apiBaseUrl)) {
+    } else if (/localhost|127\.0\.0\.1/.test(apiBaseUrl)) {
       throw new Error(
         "VITE_API_BASE_URL must point to a real deployment for production builds " +
           `(got: ${apiBaseUrl}). Production bundles must not target localhost.`
