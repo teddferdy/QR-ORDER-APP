@@ -18,7 +18,9 @@ vi.mock("../services/orderService", async (importOriginal) => {
 
 vi.mock("../hooks/useStoreConfig", () => ({
   useStoreConfig: () => ({
-    config: { taxRate: 0, serviceChargeRate: 0, storeName: "Toko" },
+    // DR-17: status "ok" keeps these DR-11 tests on the submittable path;
+    // DR-17 quote states are covered in paymentTaxQuote.test.tsx.
+    config: { taxRate: 0, serviceChargeRate: 0, storeName: "Toko", status: "ok" },
     loading: false,
     error: null,
     refetch: () => {},
