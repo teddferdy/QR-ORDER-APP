@@ -420,7 +420,7 @@ const PaymentPage: React.FC = () => {
               <span className="text-gray-500 dark:text-gray-400">
                 Service (
                 {taxReady
-                  ? `${Math.round((config.serviceChargeRate ?? 0) * 100)}%`
+                  ? `${Math.round(config.serviceChargeRate * 100)}%`
                   : "…"}
                 )
               </span>
