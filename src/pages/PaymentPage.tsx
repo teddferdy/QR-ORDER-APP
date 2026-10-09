@@ -10,6 +10,17 @@ import PaymentMethods from "../components/PaymentMethods";
 import { ChevronLeft, PartyPopper } from "lucide-react";
 import Skeleton from "../components/Skeleton";
 import { buildOrderItemsPayload } from "../utils/buildOrderItemsPayload";
+import type { OrderItemPayload } from "../utils/buildOrderItemsPayload";
+import {
+  isSnapshotCurrent,
+  matchChangedLines,
+  parsePriceChangedData,
+  snapshotCartLines,
+  type MatchedChange,
+  type SubmittedLine,
+} from "../utils/priceChange";
+import PriceChangeDialog from "../components/PriceChangeDialog";
+import { ApiError } from "../services/apiClient";
 import { bareTableDesignator } from "../utils/tableDisplay";
 import { createIdempotencyKey } from "../utils/idempotencyKey";
 
@@ -17,6 +28,7 @@ const PaymentPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { items, clearCart, subtotal } = useCartStore();
+  const { applyServerPrices } = useCartStore();
   const createOrder = useOrderStore((state) => state.createOrder);
   const { data: checkoutData, clearCheckoutData } = useCheckoutStore();
   const store = searchParams.get("store");
@@ -35,6 +47,16 @@ const PaymentPage: React.FC = () => {
   const [confirmedOrder, setConfirmedOrder] = useState<Order | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // DR-11: pending price-change confirmation. Holds the submit-time cart
+  // snapshot plus the matched backend mismatches. Never triggers a submit
+  // on its own — only an explicit confirm does, and only while the live
+  // cart still matches the snapshot.
+  const [priceConflict, setPriceConflict] = useState<{
+    snapshot: string;
+    submitted: SubmittedLine[];
+    changes: MatchedChange[];
+  } | null>(null);
+  const [confirming, setConfirming] = useState(false);
   // The page is the checkout attempt: a fresh mount is a fresh attempt, and a
   // retry after failure reuses this same component instance. So one ref per
   // mount gives P5-02's contract exactly — same key across retries of the
@@ -151,6 +173,54 @@ const PaymentPage: React.FC = () => {
   const serviceCharge = Math.round(subtotalValue * config.serviceChargeRate);
   const total = subtotalValue + tax + serviceCharge;
 
+  // DR-11: one guarded submission. Captures the cart snapshot the 409
+  // indexes refer to; a PRICE_CHANGED mismatch opens the confirmation
+  // dialog instead of retrying. Returns true on success.
+  const submitOrder = async (
+    payloadItems: OrderItemPayload[],
+    snapshot: string,
+    submitted: SubmittedLine[],
+  ): Promise<boolean> => {
+    const urlTable = searchParams.get("table");
+    const urlStore = searchParams.get("store");
+    try {
+      const order = await createOrder({
+        store: Number(urlStore),
+        tableId: urlTable ? Number(urlTable) : undefined,
+        customerName: customerName || undefined,
+        paymentMethod: selectedMethod,
+        session: searchParams.get("session") || undefined,
+        idempotencyKey: idempotencyKeyRef.current,
+        splitCount: selectedMethod === "Split Bill" ? splitCount : undefined,
+        items: payloadItems,
+      });
+      clearCart();
+      clearCheckoutData();
+      setPriceConflict(null);
+      setConfirmedOrder(order);
+      setSuccess(true);
+      return true;
+    } catch (err) {
+      // DR-11: a price mismatch must never auto-retry. Park the
+      // snapshot-bound mismatches for explicit customer confirmation.
+      if (err instanceof ApiError && err.status === 409 && err.code === "PRICE_CHANGED") {
+        const mismatches = parsePriceChangedData(err.data);
+        const changes =
+          mismatches === null
+            ? []
+            : matchChangedLines(submitted, mismatches);
+        if (changes.length > 0) {
+          setPriceConflict({ snapshot, submitted, changes });
+          return false;
+        }
+      }
+      setPaymentError(
+        err instanceof Error ? err.message : "Gagal membuat pesanan. Coba lagi.",
+      );
+      return false;
+    }
+  };
+
   const handlePayment = async () => {
     if (submitAttemptedRef.current) return;
     submitAttemptedRef.current = true;
@@ -161,37 +231,75 @@ const PaymentPage: React.FC = () => {
       // not from checkout state a customer could have edited — the QR link
       // already encodes the real table/store ids (see FE-POS-App
       // TableQRModal), and the backend looks orders up by exactly those ids.
-      const urlTable = searchParams.get("table");
-      const urlStore = searchParams.get("store");
-      const order = await createOrder({
-        store: Number(urlStore),
-        tableId: urlTable ? Number(urlTable) : undefined,
-        customerName: customerName || undefined,
-        paymentMethod: selectedMethod,
-        session: searchParams.get("session") || undefined,
-        idempotencyKey: idempotencyKeyRef.current,
-        splitCount: selectedMethod === "Split Bill" ? splitCount : undefined,
-        items: buildOrderItemsPayload(items),
-      });
-
-      clearCart();
-      clearCheckoutData();
-      setConfirmedOrder(order);
-      setSuccess(true);
-    } catch (err) {
+      const payloadItems = buildOrderItemsPayload(items);
+      const snapshot = snapshotCartLines(items);
+      const submitted: SubmittedLine[] = items.map((item, i) => ({
+        key: item.id,
+        name: item.name,
+        unitPrice: item.price,
+        quantity: item.quantity,
+        productId: payloadItems[i]?.productId,
+        bundleId: payloadItems[i]?.bundleId ?? undefined,
+      }));
+      await submitOrder(payloadItems, snapshot, submitted);
+    } finally {
       // Allow a retry attempt on failure — the duplicate-flag is only meant
       // to stop an accidental double-tap from issuing two orders, not to
       // trap the customer out of trying again after a genuine failure.
       submitAttemptedRef.current = false;
-      setPaymentError(
-        err instanceof Error
-          ? err.message
-          : "Gagal membuat pesanan. Coba lagi.",
-      );
-    } finally {
       setProcessing(false);
     }
   };
+
+  // DR-11: explicit customer confirmation. Resubmits only while the live
+  // cart still matches the snapshot the 409 indexes were verified against,
+  // with the accepted server prices and the SAME idempotency key (the 409
+  // wrote nothing, so the key cannot replay a stale order).
+  const handleConfirmPriceChange = async () => {
+    if (!priceConflict || confirming) return;
+    setConfirming(true);
+    try {
+      const liveItems = useCartStore.getState().items;
+      if (!isSnapshotCurrent(liveItems, priceConflict.snapshot)) return;
+      // Position-precise (F1): each change carries its submit-time cart
+      // position — the backend `index` counts submitted lines in order, and
+      // the snapshot check above guarantees the live cart still has that
+      // exact order (same length, ids, customizations, prices). Reference
+      // lookup recovers the position; product ID alone would hit every
+      // same-product sibling sharing customizations/prices.
+      const submitOrderLines = priceConflict.submitted;
+      applyServerPrices(
+        priceConflict.changes.map((c) => ({
+          index: submitOrderLines.indexOf(c.line),
+          price: c.currentPrice,
+        })),
+      );
+      const updated = useCartStore.getState().items;
+      const payloadItems = buildOrderItemsPayload(updated);
+      const snapshot = snapshotCartLines(updated);
+      const submitted: SubmittedLine[] = updated.map((item, i) => ({
+        key: item.id,
+        name: item.name,
+        unitPrice: item.price,
+        quantity: item.quantity,
+        productId: payloadItems[i]?.productId,
+        bundleId: payloadItems[i]?.bundleId ?? undefined,
+      }));
+      await submitOrder(payloadItems, snapshot, submitted);
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  const handleDeclinePriceChange = () => {
+    setPriceConflict(null);
+  };
+
+  // Live staleness: the cart changed after the 409 (or while the dialog is
+  // open) — withhold confirm and send the customer back to the cart.
+  const conflictStale =
+    priceConflict !== null &&
+    !isSnapshotCurrent(items, priceConflict.snapshot);
 
   if (loading) {
     return (
@@ -359,6 +467,20 @@ const PaymentPage: React.FC = () => {
           )}
         </button>
       </div>
+
+      <PriceChangeDialog
+        open={priceConflict !== null}
+        changes={(priceConflict?.changes || []).map((c) => ({
+          name: c.line.name,
+          quantity: c.line.quantity,
+          expectedPrice: c.expectedPrice,
+          currentPrice: c.currentPrice,
+        }))}
+        confirming={confirming}
+        stale={conflictStale}
+        onConfirm={handleConfirmPriceChange}
+        onDecline={handleDeclinePriceChange}
+      />
     </div>
   );
 };
