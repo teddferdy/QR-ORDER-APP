@@ -147,6 +147,21 @@ describe("PaymentPage — QR tax quote (DR-17)", () => {
     expect(useCartStore.getState().items).toHaveLength(1);
   });
 
+  test("coded INVALID_STORE shows the transient error, not the setup message, and blocks submission", async () => {
+    mockQuoteFailure(
+      new ApiError("Invalid store value", 400, { code: "INVALID_STORE" }),
+    );
+    seed();
+    renderPage("t8");
+    expect(await screen.findByText(/gagal memuat konfigurasi pajak/i)).toBeTruthy();
+    expect(screen.queryByText(/konfigurasi pajak.*belum lengkap/i)).toBeNull();
+    const pay = await payButton();
+    expect(pay).toBeDisabled();
+    await userEvent.setup().click(pay);
+    expect(mockedCreate).not.toHaveBeenCalled();
+    expect(useCartStore.getState().items).toHaveLength(1);
+  });
+
   test("transient failure shows an error with retry; retry recovers without duplicate submits", async () => {
     mockQuoteFailure(new ApiError("boom", 500));
     seed();
