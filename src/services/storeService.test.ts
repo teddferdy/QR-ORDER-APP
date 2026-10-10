@@ -100,6 +100,64 @@ describe("fetchStoreConfig — QR tax quote (DR-17)", () => {
     expect(config.status).toBe("missing");
   });
 
+  test("400 with PPN_MISSING code is classified as missing", async () => {
+    mockedGet.mockImplementation((url: string) => {
+      if (url === "/order/customer-tax-rate") {
+        return Promise.reject(
+          new ApiError("PPN tax configuration is missing", 400, {
+            code: "PPN_MISSING",
+          }),
+        );
+      }
+      return Promise.resolve(locationResponse(90, "Toko"));
+    });
+    const config = await fetchStoreConfig("90");
+    expect(config.status).toBe("missing");
+  });
+
+  test("400 with INVALID_STORE code is not classified as missing", async () => {
+    mockedGet.mockImplementation((url: string) => {
+      if (url === "/order/customer-tax-rate") {
+        return Promise.reject(
+          new ApiError("Invalid store value", 400, {
+            code: "INVALID_STORE",
+          }),
+        );
+      }
+      return Promise.resolve(locationResponse(91, "Toko"));
+    });
+    const config = await fetchStoreConfig("91");
+    expect(config.status).toBe("error");
+  });
+
+  test("400 with INVALID_CHANNEL code is not classified as missing", async () => {
+    mockedGet.mockImplementation((url: string) => {
+      if (url === "/order/customer-tax-rate") {
+        return Promise.reject(
+          new ApiError("channel must be counter or qr", 400, {
+            code: "INVALID_CHANNEL",
+          }),
+        );
+      }
+      return Promise.resolve(locationResponse(92, "Toko"));
+    });
+    const config = await fetchStoreConfig("92");
+    expect(config.status).toBe("error");
+  });
+
+  test("400 with an unknown code is not classified as missing", async () => {
+    mockedGet.mockImplementation((url: string) => {
+      if (url === "/order/customer-tax-rate") {
+        return Promise.reject(
+          new ApiError("Something else", 400, { code: "SOME_FUTURE_CODE" }),
+        );
+      }
+      return Promise.resolve(locationResponse(93, "Toko"));
+    });
+    const config = await fetchStoreConfig("93");
+    expect(config.status).toBe("error");
+  });
+
   test("maps network failure and server errors to error, never zero-tax ok", async () => {
     mockedGet.mockImplementation((url: string) => {
       if (url === "/order/customer-tax-rate") {

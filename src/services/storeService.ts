@@ -103,12 +103,16 @@ async function fetchTaxQuote(storeId: string): Promise<StoreConfig> {
       return { ...DEFAULT_STORE_CONFIG, status: "error" };
     }
   } catch (err) {
-    // This endpoint only answers 400 for client/setup problems (missing
-    // store param, bad channel, or the documented missing-PPN setup
-    // error) — the caller always sends store + channel=qr, so a 400 here
-    // means the outlet has no usable PPN configuration.
+    // The backend distinguishes client/setup problems with machine-readable
+    // codes. Only PPN_MISSING (or a legacy codeless 400 from backends that
+    // predate the code) means the outlet has no usable PPN configuration;
+    // any other non-empty code (e.g. INVALID_STORE, INVALID_CHANNEL) is a
+    // different problem and must use the transient error state instead.
     if (err instanceof ApiError && err.status === 400) {
-      return { ...DEFAULT_STORE_CONFIG, status: "missing" };
+      if (!err.code || err.code === "PPN_MISSING") {
+        return { ...DEFAULT_STORE_CONFIG, status: "missing" };
+      }
+      return { ...DEFAULT_STORE_CONFIG, status: "error" };
     }
     return { ...DEFAULT_STORE_CONFIG, status: "error" };
   }
